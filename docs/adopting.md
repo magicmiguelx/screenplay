@@ -1,7 +1,9 @@
 # Adopting the kit in a project
 
 What a project needs before its first video, and the two ways to take the
-code.
+code. Which videos to make, and in what order, is `docs/planning.md`
+(`/plan-videos` writes the roadmap; `/make-videos` works it, starting
+with the steps below).
 
 ## Needs
 

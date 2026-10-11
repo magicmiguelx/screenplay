@@ -58,8 +58,11 @@ export class Timeline {
 
   /**
    * A moment (wall clock, seconds) as a time in the finished video: on the
-   * frame being shown then, as far into it as the moment is; a moment in a
-   * pause lands on the cut (after the frames drawn by hand in it).
+   * frame being shown then, as far into it as the moment is. A moment in a
+   * pause lands on the cut, or, when frames were drawn by hand in the pause,
+   * on the first frame drawn after it (each drawn frame carries the moment
+   * it was drawn): a line logged while paused is spoken as the frames drawn
+   * under it start.
    */
   videoTime(wall: number): number {
     const frames = this.frames;

@@ -148,13 +148,17 @@ export class Recorder {
    * A frame drawn by hand, shown for `duration` seconds, while the screencast
    * is paused: a smooth move the software renderer could never screencast at
    * 30 frames a second is drawn one frame at a time (a screenshot per frame)
-   * and the video is that long, however long drawing it took.
+   * and the video is that long, however long drawing it took. The frame is
+   * stamped with the moment it was drawn, so a line logged in the pause
+   * lands on the frames drawn after it, not after them all (a caption set
+   * while paused, then an orbit drawn under it, is spoken as the orbit
+   * starts).
    */
   addFrame(data: Buffer, duration: number) {
     if (this.recording || this.pausedAt === null) throw new Error('addFrame() needs the screencast paused.');
     const file = this.nextFile();
     writeFileSync(file, data);
-    this.keep(file, this.pausedAt, duration);
+    this.keep(file, Date.now() / 1000, duration);
   }
 
   /** A moment (Date.now() / 1000) as a time in the finished video. */

@@ -43,6 +43,18 @@ form to work through while you do.
 - **Claim only what is measured.** The sales video makes AI a supporting
   beat and claims no accuracy; the product's evals say what can be
   claimed. A video outlives the number it quotes.
+- **A film of twenty seconds is not a short tutorial.** The landing
+  page's film (the second Plenoview promo) is the sales arc cut to its
+  bones: a hook (the problem, three seconds), the reveal, two beats of
+  one line and one moving picture each, the offer held to the end; five
+  lines of three to nine words, said in one to three seconds. The voice
+  sets the pace and nothing waits for a caption to be read. The hook is
+  in the first frame (the picture goes up before `start()`), every
+  mechanic is off camera, and every frame is drawn by hand (next
+  section): a film has no room for the screencast's waits. Nothing is
+  clicked on camera, so the cursor is parked in a corner for the whole
+  film (the first take had it in the closing card's title). A tutorial
+  explains; a film sells; the landing page gets the film.
 
 ## 2. Recording
 
@@ -87,9 +99,46 @@ form to work through while you do.
   screencast, puts the page at each step of the move, screenshots it, and
   keeps the screenshot as a frame of 1 / 30 s: the move is smooth however
   long drawing it took. `src/three.ts` has an orbit for a three.js scene.
+- **A heavy scene is drawn by hand too, stills included.** A lit scene
+  (a highlighted path, shadows) screencasts at under a frame a second in
+  software, so every beat on the screencast stretches: a caption waits
+  up to four seconds for its two frames, a click's result arrives when
+  it arrives, and the first take of a twenty-second film ran thirty-nine.
+  Set the line while the screencast is paused (it is logged at once, the
+  fade waited out), then draw the frames under it (`still()` for a card,
+  a picture or a caption over a still picture; `drawFrames()` or an
+  orbit for a move): the line is spoken as those frames start. A drawn
+  frame carries the moment it was drawn, which is what places the line
+  (an earlier version stamped every drawn frame with the pause's start,
+  and a line set in the pause landed after the whole orbit). While
+  paused, `say()` and `card()` set the line and return: no wall-clock
+  wait, no taking it down (there is no frame to show either); the frames
+  drawn next last as long as the line needs. And a clip made for a line
+  while paused leaves the pause alone (the first voiced take resumed
+  after every uncached clip, and each beat got a second of live frames
+  before its still). An app animation the screencast cannot keep up with
+  (a timeline played) is shown as before and after, each drawn: a cut is
+  what the screencast would have shown anyway.
 - **The screencast restarts after a navigation.** Coming back from an
   external page can end it; the recorder starts it again on
   `framenavigated`.
+- **Don't touch the app's source while it records.** The dev server's
+  hot reload is a navigation: the page reloads, the scene and its
+  handles are gone, and the take dies with a baffling error (the film's
+  first take, twenty frames into the orbit, after an edit to the app's
+  strings; the failure screenshot showed the default diagram, which was
+  the clue). Edit the docs, not the app, while a recording runs, or
+  record from a second checkout.
+- **The cost of a drawn frame, measured once.** In a four-core container
+  with no GPU, a full-HD screenshot of a lit three.js scene takes 2.5 to
+  3.7 s (40 frames in 115 s, measured twice); at the layout size about
+  half that. A twenty-second film drawn at 20 frames a second is about
+  250 screenshots, ten to fifteen minutes; budget a take accordingly, and
+  draw stills as one frame held (`still()`), never as a run of identical
+  screenshots. "THREE.WebGLRenderer: Context Lost." in the console during
+  a take is the app's own thumbnail canvas being unmounted (React Three
+  Fiber forces a loss on unmount), not the scene's context: the scene
+  handle survives it.
 - **Warm up off camera.** The screencast's first frames can show the
   page as it was before recording started. `demo.start()` waits for frames
   from the running stream, then discards them: the video starts with the
@@ -153,8 +202,8 @@ The one lesson that cost the most. The full model is in
   paused, so the wait is never in the video; clips are cached by a hash of
   the voice, the model and the text sent, so a re-recording pays only for
   changed lines.
-- **A drawn move gives the voice room.** An orbit lasts at least as long
-  as what is left of the line being spoken.
+- **A drawn move gives the voice room.** An orbit, and a drawn still,
+  lasts at least as long as what is left of the line being spoken.
 
 ## 4. Writing for the ear
 

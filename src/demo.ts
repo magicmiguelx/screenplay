@@ -22,6 +22,8 @@ const BREATH_MS = 400;
  * over a heavy scene): a line is spoken once it can be read.
  */
 const FADE = 1.0;
+/** The overlay's longest fade (the card's .45 s), waited out when the screencast is paused. */
+const FADE_MS = 500;
 
 /** A title card's line: the title and the line under it, as one text. */
 export const cardText = (title: string, sub: string) => (/[.?!]$/.test(title) ? `${title} ${sub}` : `${title}. ${sub}`);
@@ -108,10 +110,13 @@ export class Demo {
   private async voiceOf(caption: string, voice?: string) {
     const said = voice ?? speakable(caption);
     if (this.voiced) {
-      const cached = existsSync(clipPath(said));
-      if (!cached) this.rec.pause();
+      // The cut is this method's only when the caller had not already paused:
+      // an earlier version resumed either way, and a line set while paused
+      // (to be drawn as a still) got a second of live frames before it.
+      const cut = !existsSync(clipPath(said)) && !this.rec.paused;
+      if (cut) this.rec.pause();
       const file = await clip(said, { log: false });
-      if (!cached) this.rec.resume();
+      if (cut) this.rec.resume();
       this.spoken[said] = Math.round(seconds(file) * 100) / 100;
     }
     return said;
@@ -138,8 +143,15 @@ export class Demo {
   /** Put the cursor back where it was after a navigation (a new document has a new overlay). */
   async restore() { await this.ui('cursorTo', this.x, this.y, 0); }
 
-  /** The overlay has drawn what was just changed, and its fade is over: the line can be read, so it can be spoken. */
+  /**
+   * The overlay has drawn what was just changed, and its fade is over: the
+   * line can be read, so it can be spoken. While the screencast is paused
+   * there is no frame to wait for: the fade is waited out, so the first
+   * frame drawn by hand after it (`still()`, `drawFrames()`, an orbit) has
+   * the line fully in, and the line is spoken as that frame starts.
+   */
   private async shown() {
+    if (this.rec.paused) { await this.wait(FADE_MS); return; }
     await this.rec.painted(Date.now() / 1000 + FADE);
   }
 
@@ -147,7 +159,10 @@ export class Demo {
    * A title card over the app; `voice` is what is said, if not the title and
    * the line under it. `hold` leaves the card up: the closing card stays to
    * the end of the video (an earlier version took it down half a second
-   * before the end, and a video ended on a flash of the editor).
+   * before the end, and a video ended on a flash of the editor). While the
+   * screencast is paused the card is set and logged and that is all: it is
+   * left up for the frames drawn next (`still()`), which last as long as
+   * its line needs, since no frame would show it being held here.
    */
   async card(kicker: string, title: string, sub: string, ms = 4500, voice?: string, opts: { hold?: boolean } = {}) {
     await this.waitSpeech();
@@ -158,6 +173,7 @@ export class Demo {
     const line: Line = { kind: 'card', text: cardText(title, sub), voice: said, from: Date.now() / 1000 };
     this.lines.push(line);
     this.spokenNow(said);
+    if (this.rec.paused) return;
     await this.wait(ms);
     await this.waitSpeech();
     if (opts.hold) return;
@@ -200,7 +216,8 @@ export class Demo {
    * A caption, held long enough to read (or `ms`) and to be spoken; `keep`
    * leaves it up while the next actions run. `voice` is what is said when
    * it should differ from the caption: written for the ear
-   * (docs/writing-for-the-ear.md).
+   * (docs/writing-for-the-ear.md). While the screencast is paused it is a
+   * `note()`: set and logged, left up for the frames drawn next.
    */
   async say(text: string, opts: { ms?: number; keep?: boolean; top?: boolean; voice?: string } = {}) {
     await this.waitSpeech();
@@ -210,7 +227,7 @@ export class Demo {
     await this.shown();
     this.logCaption(text, said);
     this.spokenNow(said);
-    if (!opts.keep) {
+    if (!opts.keep && !this.rec.paused) {
       await this.wait(opts.ms ?? readMs(text));
       await this.waitSpeech();
       await this.ui('caption', null);
@@ -380,6 +397,23 @@ export class Demo {
       await draw(eased, i, frames);
       this.rec.addFrame(await this.page.screenshot({ type: 'jpeg', quality: 92 }), 1 / fps);
     }
+    this.rec.resume();
+    this.speechEnd = Math.min(this.speechEnd, Date.now());
+  }
+
+  /**
+   * A still drawn by hand: one screenshot held for `secs`, or longer if the
+   * line on screen needs it, with the screencast paused. For a card, a
+   * picture or a caption over a page that screencasts slowly (a lit scene
+   * on a software renderer sends under a frame a second): set the line
+   * while paused, then `still()`, and it is spoken as the still starts
+   * rather than whenever the next frame happens to arrive. The video has
+   * moved on by `secs` when it is over, so the line counts as spoken.
+   */
+  async still(secs: number) {
+    const length = Math.max(secs, (this.speechEnd - Date.now()) / 1000 + 0.3);
+    this.rec.pause();
+    this.rec.addFrame(await this.page.screenshot({ type: 'jpeg', quality: 92 }), length);
     this.rec.resume();
     this.speechEnd = Math.min(this.speechEnd, Date.now());
   }

@@ -91,9 +91,11 @@ config's `undo` rules), with what was sent; lines with a word not heard are
 listed with what was sent and what was heard. Listen to those.
 
 False positives seen: the transcriber's own spellings ("life cycle" for
-"lifecycle", "dialogue" for "dialog", "around" for "round") and a brand it
-writes its own way whatever is sent ("plano view": the owner confirmed
-the clip says it right). Add such spellings to `undo` once they are known.
+"lifecycle", "dialogue" for "dialog", "around" for "round"), a brand it
+writes its own way whatever is sent ("plano view", "PlanoView": the owner
+confirmed the clip says it right), and a web address said as "dot com"
+and written "plenoview.com" (the dot goes with the punctuation). Add such
+spellings to `undo` once they are known.
 
 ## 6. Titles
 
@@ -110,3 +112,11 @@ A line a viewer reads in five seconds is spoken in four to seven. The
 caption stays up for whichever is longer, so a long `voice` on a short
 caption holds the screen; split the line instead. Twenty words is a long
 line; a card's blurb of twenty-five is the most that fits the card.
+
+In a film of twenty seconds the lines are fragments: three to nine
+words, one to three seconds ("Boxes and arrows. One platform at a time."
+"Pick any system... and see everything it feeds." "Today..." "...and the
+Target."), and the caption is the fragment as written, since nobody reads
+a film. The ellipsis splits one thought over two pictures: the voice
+pauses on it, and the second half is a line of its own, set over the
+second picture.

@@ -30,5 +30,7 @@ export default {
     [/\bu r ls\b/g, 'urls'],
     [/\bthree d\b/g, '3d'],
     [/\blife cycle\b/g, 'lifecycle'],
+    // "at acme dot example" is heard as "acme.example", and the dot goes with the punctuation.
+    [/\bdot (com|example|io)\b/g, '$1'],
   ],
 };

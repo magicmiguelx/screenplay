@@ -67,7 +67,10 @@ test('a small page, recorded with captions, a card and the script files', async 
   await demo.say('Ten, drawn frame by frame.', { ms: 1200 });
   await demo.spot(null);
   await demo.poster(resolve(OUT, 'smoke.jpg'));
-  await demo.card('The end', 'That is the kit', 'Thanks for watching.', 1500, undefined, { hold: true });
+  // The closing card set while paused and drawn as a still: logged after the fade, placed where the still starts.
+  demo.rec.pause();
+  await demo.card('The end', 'That is the kit', 'Thanks for watching.', 0, undefined, { hold: true });
+  await demo.still(1.5);
   const { length, lines } = await demo.save(resolve(OUT, 'smoke.mp4'), resolve(OUT, 'smoke'), { title: 'Smoke test', spec: 'tests/smoke.spec.ts', root: resolve(import.meta.dirname, '..') });
 
   expect(existsSync(resolve(OUT, 'smoke.mp4'))).toBe(true);
@@ -83,6 +86,9 @@ test('a small page, recorded with captions, a card and the script files', async 
   // Lines cost no dead time: the whole video is under 25 s.
   expect(length).toBeLessThan(25);
   expect(lines.at(-1)!.end).toBeGreaterThan(lines.at(-1)!.start + 1);
+  // The card set in the pause starts where the still starts: at the cut, a poster's screenshot after the line before it, not after the still.
+  expect(lines.at(-1)!.start).toBeLessThan(lines.at(-2)!.end + 1.2);
+  expect(lines.at(-1)!.end - lines.at(-1)!.start).toBeGreaterThan(1.4);
   // The script files.
   const vtt = readFileSync(resolve(OUT, 'smoke.vtt'), 'utf8');
   expect(vtt.startsWith('WEBVTT')).toBe(true);

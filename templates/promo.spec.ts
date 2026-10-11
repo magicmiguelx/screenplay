@@ -14,6 +14,10 @@ import config from '../../screenplay.config.mjs';
 // The story: the problem everyone recognises → the reveal (an orbit, drawn
 // frame by frame) → three or four beats, each one line and one action →
 // the offer, held to the end. Claim only what is measured.
+//
+// A landing-page film of twenty seconds is the same arc cut to its bones
+// (a hook, the reveal, two beats, the offer) with every frame drawn by hand
+// and every line set while paused: examples/plenoview-promo-20.spec.ts.
 
 const ROOT = resolve(import.meta.dirname, '../..');
 const OUT = resolve(ROOT, 'public/promo');

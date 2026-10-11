@@ -5,6 +5,16 @@ Playwright, an overlay (cursor, captions, cards), the DevTools screencast,
 ffmpeg and an ElevenLabs voice kept on the picture; and the playbook of
 what was learned making nineteen of them. `README.md` is the map.
 
+## When a session is about planning an app's videos
+
+Pointed at an app repository (cloned beside this one, or a path), the
+`plan-videos` skill (`.claude/skills/plan-videos/SKILL.md`, method in
+`docs/planning.md`) surveys it and writes its `docs/video-roadmap.md`
+(`templates/video-roadmap.md`): the tutorials in tracks, the promos, what
+each needs, the order. Survey what the app says and its tests prove;
+never guess a feature. `make-videos` delivers the roadmap, one video at a
+time by the checklist below, and ticks it as it goes.
+
 ## When a session is about making a video (in any project)
 
 1. Read `docs/playbook.md` first, then `docs/new-video-checklist.md`, and
@@ -20,6 +30,9 @@ what was learned making nineteen of them. `README.md` is the map.
      acronyms are fixed once in the project's `say` rules; a recording is
      not done until `screenplay-voiceover check` has been run and its
      lines listened to.
+   - A promo is written to its length first: a twenty-second film is a
+     hook, a reveal, two beats and the offer, in fragments of six to
+     nine words, and nothing in it waits for a caption to be read.
    - Video specs are skipped unless asked (`DEMOS=1`, `PROMO=1`), use
      the app's mocks (no real AI calls, no real payments), and the voice
      key is never in CI.

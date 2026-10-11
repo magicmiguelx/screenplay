@@ -31,7 +31,9 @@ does not). Work down it; every line is a rule from `docs/playbook.md`.
       action, a line for the orbit.
 - [ ] Slow or dull mechanics cut: `rec.pause()` … `rec.resume()` around
       loads and dialogs' plumbing; `cardAcross()` over a navigation.
-- [ ] Smooth moves drawn by hand (`drawFrames`, the three.js `orbit`).
+- [ ] Smooth moves drawn by hand (`drawFrames`, the three.js `orbit`);
+      over a heavy scene, the stills too (`still()`), with the line set
+      while paused. A film: every frame.
 - [ ] Captions `top: true` where the bottom of the screen is what they
       describe; `spot()` on the element a line is about, and `spot(null)`
       after.

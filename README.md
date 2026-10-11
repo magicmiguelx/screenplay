@@ -32,10 +32,12 @@ spec (the screenplay)  ──►  Demo (driver)  ──►  overlay in the page:
 | `docs/timing-model.md` | How a moment in the recording becomes a time in the video, and why the voice lands where it does. |
 | `docs/quality-check.md` | Frame sheets, transcription, and measuring the voice against the picture. |
 | `docs/adopting.md` | Setting a project up: needs, files, the app's side. |
+| `docs/planning.md` | Pointing the kit at an app: how the list of tutorials and promos is found, and the roadmap for making them (`/plan-videos` writes it, `/make-videos` delivers it). |
 | `docs/history.md` | Where each rule came from, with dates. |
 | `src/` | The kit: `Demo` (the driver), `Recorder` and `Timeline`, the `overlay`, the voice (`configure`, `clip`, `mix`, `speakable`), the script writer, a three.js `orbit`, and the `screenplay-voiceover` CLI. |
-| `templates/` | A project's config, its video list, a tutorials spec and a promo spec to copy and fill in. |
-| `examples/` | Two of the Plenoview specs, as recorded, with notes on what to look at. |
+| `templates/` | A project's config, its video list, a tutorials spec, a promo spec and a video roadmap to copy and fill in. |
+| `examples/` | Three of the Plenoview specs, as recorded, with notes on what to look at: a tutorial, the two-minute sales video and the twenty-second landing-page film. |
+| `.claude/skills/` | For an agent: `plan-videos` surveys an app and writes its video roadmap; `make-videos` delivers it. |
 | `tests/` | Unit tests of the timeline, the voice text rules and the script writer; a smoke recording of a small page end to end. |
 
 ## Quick start
@@ -50,7 +52,10 @@ ELEVENLABS_API_KEY=… DEMOS=1 npx playwright test demos -g "^7 ·"   # voiced a
 npx screenplay-voiceover check 07               # every clip transcribed and compared with what it should say
 ```
 
-A new project: `docs/adopting.md`. In short, `npm install -D
+A new project, from nothing: `/plan-videos <path to the app>` surveys it and
+writes `docs/video-roadmap.md` there (the tutorials in tracks, the promos,
+the fixtures they need, the order to make them: `docs/planning.md`);
+`/make-videos` works the roadmap. Setting the project up by hand: `docs/adopting.md`. In short, `npm install -D
 github:magicmiguelx/screenplay` (or copy `src/` into the e2e tree),
 copy `templates/screenplay.config.mjs` to the project root and
 `templates/demos.spec.ts` beside the e2e tests, and write the first

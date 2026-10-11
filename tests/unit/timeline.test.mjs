@@ -52,13 +52,31 @@ test('a frame drawn by hand lasts what it was given', () => {
   const t = new Timeline();
   t.add('a', 100.0);
   t.cut(100.5);
-  t.add('o1', 100.5, 1 / 30);
-  t.add('o2', 100.5, 1 / 30);
+  t.add('o1', 102.0, 1 / 30);   // drawn 1.5 s into the pause (a screenshot takes what it takes)
+  t.add('o2', 104.0, 1 / 30);
   t.add('b', 120.0);
   close(t.frames[1].video, 0.5, 'the first drawn frame follows the still');
   close(t.frames[2].video, 0.5 + 1 / 30);
   close(t.frames[3].video, 0.5 + 2 / 30, 'the screencast resumes after the drawn frames');
-  close(t.videoTime(110), 0.5 + 2 / 30, 'a moment in the pause lands after the drawn frames');
+  close(t.videoTime(110), 0.5 + 2 / 30, 'a moment after the drawn frames lands after them');
+});
+
+test('a line logged in a pause is spoken as the frames drawn after it start', () => {
+  // A caption set while paused (logged at 101.0), then an orbit drawn under
+  // it from 101.5: the line lands on the first drawn frame, not after the
+  // orbit (which an earlier version did: every drawn frame carried the
+  // pause's start, so the whole orbit was "before" the line).
+  const t = new Timeline();
+  t.add('a', 100.0);
+  t.add('b', 100.4);
+  t.cut(100.5);
+  t.add('o1', 101.5, 0.5);
+  t.add('o2', 103.0, 0.5);
+  t.add('o3', 104.5, 0.5);
+  t.add('c', 120.0);
+  close(t.videoTime(101.0), 0.5, 'logged before the first drawn frame: on it');
+  close(t.videoTime(103.5), 1.5, 'logged between o2 and o3: on o3');
+  close(t.videoTime(110.0), 2.0, 'logged after the last drawn frame: after it');
 });
 
 test('durations and the concat list hold the last frame to the end plus the tail', () => {
