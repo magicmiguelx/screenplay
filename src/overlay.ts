@@ -1,0 +1,136 @@
+// The overlay drawn over the app while it is recorded. Headless Chromium
+// draws no cursor, so the page gets one: a pointer that glides to each
+// control (a CSS transition, so it moves smoothly even while a
+// software-rendered scene runs at a few frames a second), a ring on each
+// click, a caption (bottom or top), a title card, a picture card and a
+// spotlight. Installed in every document the page loads
+// (page.addInitScript), so it survives a navigation.
+//
+// It runs in the page: no imports, no closures over the test process, and
+// its only argument is serialised (`OverlayOptions`).
+
+export interface OverlayOptions {
+  /** The small line at the bottom of every title card: the product and its tagline. */
+  brand?: string;
+  /**
+   * Refuse browser full screen. In headless Chromium a real full screen
+   * resizes the screencast's surface and the frames come out cropped and
+   * zoomed; refused, an app that falls back to an in-window full-screen
+   * view looks the same at the recording's window size. Default true.
+   */
+  refuseFullscreen?: boolean;
+  /** Extra CSS appended to the overlay's own (fonts, colours). */
+  css?: string;
+  /**
+   * The heartbeat: an invisible 2-pixel dot stepped across the bottom-left
+   * corner this many times a second, so the screencast keeps sending
+   * frames while the page is still. A page that draws nothing between
+   * actions (no animation, no 3D scene) sends no frames, and the recorder
+   * could not tell when a caption was in the picture. Default 12; 0 turns
+   * it off (an app whose scene renders continuously does not need it).
+   */
+  heartbeat?: number;
+}
+
+/** The overlay's API, on `window.__demo` once installed. */
+export interface OverlayApi {
+  cursorTo(x: number, y: number, ms: number): void;
+  press(x: number, y: number): void;
+  caption(text: string | null, top?: boolean): void;
+  card(kicker: string | null, title?: string, sub?: string): void;
+  picture(src: string | null): void;
+  spot(rect: { x: number; y: number; width: number; height: number } | null): void;
+}
+
+/** Installs the overlay; passed to page.addInitScript with its options. */
+export function overlay(opts: OverlayOptions = {}) {
+  const w = window as unknown as { __demo?: OverlayApi };
+  if (w.__demo) return;
+  if (opts.refuseFullscreen !== false) {
+    Element.prototype.requestFullscreen = () => Promise.reject(new Error('Not in the demo recordings.'));
+  }
+  const beat = Math.max(0, Math.round(opts.heartbeat ?? 12));
+  const css = `
+#demo-overlay { position: fixed; inset: 0; pointer-events: none; z-index: 2147483647; font: 500 20px/1.4 system-ui, -apple-system, 'Segoe UI', sans-serif; }
+#demo-overlay .cursor { position: absolute; left: 0; top: 0; width: 26px; height: 26px; transition-property: transform; transition-timing-function: cubic-bezier(.45,.05,.25,1); filter: drop-shadow(0 2px 3px rgba(0,0,0,.55)); }
+#demo-overlay .ring { position: absolute; width: 44px; height: 44px; margin: -22px 0 0 -22px; border-radius: 50%; border: 3px solid #ffd54a; opacity: 0; }
+#demo-overlay .ring.on { animation: demo-ring .55s ease-out; }
+@keyframes demo-ring { from { transform: scale(.35); opacity: 1; } to { transform: scale(1.25); opacity: 0; } }
+#demo-overlay .caption { position: absolute; left: 50%; bottom: 96px; transform: translateX(-50%); max-width: 74%; padding: 12px 22px; border-radius: 12px; background: rgba(9, 13, 22, .9); color: #f4f7fb; text-align: center; box-shadow: 0 8px 28px rgba(0,0,0,.45); border: 1px solid rgba(255,255,255,.12); opacity: 0; transition: opacity .3s; }
+#demo-overlay .caption.top { bottom: auto; top: 64px; }
+#demo-overlay .caption.on { opacity: 1; }
+#demo-overlay .card { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; background: radial-gradient(ellipse at 50% 40%, rgba(22, 34, 58, .94), rgba(6, 9, 16, .97)); color: #fff; opacity: 0; transition: opacity .45s; text-align: center; padding: 0 12%; }
+#demo-overlay .card.on { opacity: 1; }
+#demo-overlay .card .kicker { font-size: .9em; letter-spacing: .14em; text-transform: uppercase; color: #8fb8ff; }
+#demo-overlay .card h1 { margin: 0; font-size: 2.4em; font-weight: 700; letter-spacing: -.01em; }
+#demo-overlay .card p { margin: 0; font-size: 1.1em; color: #c9d4e5; max-width: 45em; }
+#demo-overlay .card .brand { position: absolute; bottom: 36px; font-size: .8em; color: #7f8ba0; letter-spacing: .04em; }
+#demo-overlay .picture { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(6, 9, 16, .82); opacity: 0; transition: opacity .4s; }
+#demo-overlay .picture.on { opacity: 1; }
+#demo-overlay .picture img { max-width: 78%; max-height: 74%; border-radius: 10px; box-shadow: 0 18px 60px rgba(0,0,0,.6); transform: rotate(-1.2deg); }
+#demo-overlay .spot { position: absolute; border: 3px solid #ffd54a; border-radius: 10px; box-shadow: 0 0 0 4000px rgba(0,0,0,.28); opacity: 0; transition: opacity .3s, left .3s, top .3s, width .3s, height .3s; }
+#demo-overlay .spot.on { opacity: 1; }
+#demo-overlay .beat { position: absolute; left: 0; bottom: 0; width: 2px; height: 2px; background: rgba(255,255,255,.02); animation: demo-beat 1s steps(${beat}, end) infinite; }
+@keyframes demo-beat { from { transform: translateX(0); } to { transform: translateX(${beat}px); } }
+${opts.css ?? ''}`;
+  const text = (s: string) => s.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]!);
+  const install = () => {
+    if (document.getElementById('demo-overlay')) return;
+    const style = document.createElement('style');
+    style.textContent = css;
+    document.head.appendChild(style);
+    const root = document.createElement('div');
+    root.id = 'demo-overlay';
+    root.setAttribute('aria-hidden', 'true');
+    root.innerHTML = `
+      ${beat ? '<div class="beat"></div>' : ''}
+      <div class="spot"></div>
+      <div class="caption"></div>
+      <div class="picture"><img alt=""></div>
+      <div class="card"><div class="kicker"></div><h1></h1><p></p><div class="brand">${text(opts.brand ?? '')}</div></div>
+      <div class="ring"></div>
+      <svg class="cursor" viewBox="0 0 26 26"><path d="M3 2 L3 21 L8.2 16.4 L11.6 24 L15 22.5 L11.7 15 L19 15 Z" fill="#fff" stroke="#111" stroke-width="1.6" stroke-linejoin="round"/></svg>`;
+    document.body.appendChild(root);
+  };
+  const $ = (sel: string) => { install(); return document.querySelector(`#demo-overlay ${sel}`) as HTMLElement; };
+  w.__demo = {
+    cursorTo(x, y, ms) {
+      const c = $('.cursor');
+      c.style.transitionDuration = `${ms}ms`;
+      c.style.transform = `translate(${x - 3}px, ${y - 2}px)`;
+    },
+    press(x, y) {
+      const r = $('.ring');
+      r.style.left = `${x}px`;
+      r.style.top = `${y}px`;
+      r.classList.remove('on');
+      void r.offsetWidth;
+      r.classList.add('on');
+    },
+    caption(text, top = false) {
+      const c = $('.caption');
+      if (text) { c.textContent = text; c.classList.toggle('top', top); }
+      c.classList.toggle('on', !!text);
+    },
+    card(kicker, title, sub) {
+      const c = $('.card');
+      if (kicker !== null) {
+        c.querySelector('.kicker')!.textContent = kicker;
+        c.querySelector('h1')!.textContent = title ?? '';
+        c.querySelector('p')!.textContent = sub ?? '';
+      }
+      c.classList.toggle('on', kicker !== null);
+    },
+    picture(src) {
+      const p = $('.picture');
+      if (src) (p.querySelector('img') as HTMLImageElement).src = src;
+      p.classList.toggle('on', !!src);
+    },
+    spot(rect) {
+      const s = $('.spot');
+      if (rect) Object.assign(s.style, { left: `${rect.x - 6}px`, top: `${rect.y - 6}px`, width: `${rect.width + 12}px`, height: `${rect.height + 12}px` });
+      s.classList.toggle('on', !!rect);
+    },
+  };
+  if (document.body) install(); else document.addEventListener('DOMContentLoaded', install);
+}

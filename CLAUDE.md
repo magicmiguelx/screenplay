@@ -1,0 +1,58 @@
+# Screenplay
+
+Scripted, narrated product videos recorded from the app itself with
+Playwright, an overlay (cursor, captions, cards), the DevTools screencast,
+ffmpeg and an ElevenLabs voice kept on the picture; and the playbook of
+what was learned making nineteen of them. `README.md` is the map.
+
+## When a session is about making a video (in any project)
+
+1. Read `docs/playbook.md` first, then `docs/new-video-checklist.md`, and
+   work down the checklist. `docs/writing-for-the-ear.md` before writing
+   any line's spoken text; `docs/quality-check.md` before calling a
+   recording done.
+2. The rules that are not negotiable, because each was paid for:
+   - The voice is placed by the frames (`Timeline.videoTime`), never by
+     the wall clock; a line is logged once it is in the picture
+     (`painted()`); the closing card is held to the end; the last line is
+     never cut short.
+   - Every line has a spoken text written for the ear; brand words and
+     acronyms are fixed once in the project's `say` rules; a recording is
+     not done until `screenplay-voiceover check` has been run and its
+     lines listened to.
+   - Video specs are skipped unless asked (`DEMOS=1`, `PROMO=1`), use
+     the app's mocks (no real AI calls, no real payments), and the voice
+     key is never in CI.
+   - Slow mechanics are cut (`rec.pause()` / `resume()`); smooth moves are
+     drawn frame by frame (`drawFrames`, `orbit`); browser full screen is
+     refused.
+   - The overlay is installed with `Demo.prepare()` before the first
+     navigation and the page is loaded with `page.goto()` (init scripts
+     do not run for `setContent()`); the driver throws if it is missing.
+   - A user-facing change the videos show re-records them; a recorder
+     change re-records all of them.
+3. Claim in a video only what the product has measured.
+4. When something new is learned (a word the voice mishears, a timing
+   problem, a headless quirk), add it to the playbook and to
+   `docs/history.md` with the date, in the same change as the fix.
+
+## Developing the kit itself
+
+- `src/` is TypeScript, ESM, compiled to `dist/` by `npm run build`
+  (`prepare` runs it on install, so a git dependency works). Keep it
+  app-agnostic: anything that reads an app's own state (a node's
+  position, a store) is the project's, as `src/three.ts` shows for a
+  three.js scene; the driver takes functions and locators.
+- `src/overlay.ts` runs in the page: no imports, no closures over the
+  test process, options serialised through `addInitScript`.
+- `src/timeline.ts` is pure and unit-tested; a change to how frames,
+  cuts or holds are timed gets a test in `tests/unit/timeline.test.mjs`.
+- `npm run typecheck`, `npm run test:unit` and `npm run test:smoke` (a
+  real recording of a small page: Chromium and ffmpeg) before a push.
+  The smoke test asserts the opening card's time and the video's length,
+  which is what catches an overlay or timing regression.
+- Docs are part of every change: a new option goes in the playbook or
+  the adopting guide; a new rule goes in the playbook with its reason and
+  in the history with its date.
+- No new dependencies without a reason; the kit has none at runtime
+  beyond Playwright.
