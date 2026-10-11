@@ -56,6 +56,19 @@ form to work through while you do.
   film, and parked again after every off-camera click, which moves it
   (two takes had it in the closing card's title). A tutorial
   explains; a film sells; the landing page gets the film.
+- **One spec, three cuts.** The beats are functions, so a two-minute
+  sales piece, a one-minute hero cut and a twenty-second social film
+  came from the same spec file in a day (`examples/plenoview-promo*.spec.ts`),
+  each written to its own length: the hero cut is the whole arc with
+  one line per beat, the film is the arc cut to its bones. A line trimmed
+  is a second saved, and the first take of the minute ran seventy-five:
+  write the cut, record it, read the script table, trim the lines whose
+  Voice is long for their picture, record again.
+- **Film a result in the view it reads best in, not the one it opens
+  in.** The AI draft applied as a new diagram opens in the Front view;
+  the minute cut turns it to 3D off camera before it drifts. A caption
+  over the thing a line is about goes to the top (the timeline, a review
+  table).
 
 ## 2. Recording
 

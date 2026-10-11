@@ -73,6 +73,8 @@ are not repeated here; the shape is what to take:
   seconds. Plan the longest cut first and derive the short ones from the
   same spec (the kit makes that cheap: the beats are the same functions
   with fewer lines), and name each cut's placement in the roadmap.
+  Plenoview ended the day with three from one spec: two minutes for
+  outbound, a minute for the hero, twenty seconds for social.
 - **Designed for muted viewing.** Captions carry the whole message, the
   first frame has motion and text, the voice is an enhancement: which is
   how the kit works already (every line is a caption, the hook is in the
