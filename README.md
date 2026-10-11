@@ -36,7 +36,7 @@ spec (the screenplay)  ──►  Demo (driver)  ──►  overlay in the page:
 | `docs/history.md` | Where each rule came from, with dates. |
 | `src/` | The kit: `Demo` (the driver), `Recorder` and `Timeline`, the `overlay`, the voice (`configure`, `clip`, `mix`, `speakable`), the script writer, a three.js `orbit`, and the `screenplay-voiceover` CLI. |
 | `templates/` | A project's config, its video list, a tutorials spec, a promo spec and a video roadmap to copy and fill in. |
-| `examples/` | Four of the Plenoview specs, as recorded, with notes on what to look at: a tutorial, and the three promo cuts from one spec (two minutes for outbound, a minute for the hero, twenty seconds for social). |
+| `examples/` | Five of the Plenoview specs, as recorded, with notes on what to look at: a tutorial, the three promo cuts from one spec (two minutes for outbound, a minute for the hero, twenty seconds for social), and the film at 9:16 for a phone. |
 | `.claude/skills/` | For an agent: `plan-videos` surveys an app and writes its video roadmap; `make-videos` delivers it. |
 | `tests/` | Unit tests of the timeline, the voice text rules and the script writer; a smoke recording of a small page end to end. |
 

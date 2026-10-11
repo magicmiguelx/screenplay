@@ -56,6 +56,13 @@ form to work through while you do.
   film, and parked again after every off-camera click, which moves it
   (two takes had it in the closing card's title). A tutorial
   explains; a film sells; the landing page gets the film.
+- **A video for a phone is a layout, not a new recorder.** The page is
+  laid out at the phone's size (`layout`) and drawn at full HD portrait
+  (`output` with the device scale factor), the overlay is sized for it
+  (`css`: smaller type, a caption nearly the width of the screen, a card
+  whose title fits), and the captions go to the top, clear of what an
+  app puts at the bottom of a phone screen. The phone tutorial and the
+  film's 9:16 cut were made that way (`examples/plenoview-promo-vertical.spec.ts`).
 - **One spec, three cuts.** The beats are functions, so a two-minute
   sales piece, a one-minute hero cut and a twenty-second social film
   came from the same spec file in a day (`examples/plenoview-promo*.spec.ts`),
