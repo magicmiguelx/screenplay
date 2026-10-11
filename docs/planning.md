@@ -122,6 +122,11 @@ do not invent others:
 - Eighteen tutorials, 38 minutes of video, 236 spoken lines, recorded
   with the voice in about an hour and a half end to end on a software
   renderer; a three-minute video takes five to ten minutes to record.
+  The re-recording of twenty-three (43 minutes of video) took 80 minutes
+  in a four-core container without a GPU, clips cached.
+- A new tutorial of one to two minutes took two to four takes and about
+  forty minutes of recording each, plus the writing (the five of
+  2026-10-11).
 - Writing is the cost: a tutorial's spec is one to two hours of writing
   and two or three takes before the clicks land and the lines sit over
   the right screen; the voice check and the fixes are another half hour
