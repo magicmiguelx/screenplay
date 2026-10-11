@@ -51,6 +51,9 @@ time by the checklist below, and ticks it as it goes.
 
 ## Developing the kit itself
 
+- Work on `main` and push it; no feature branches or pull requests (the
+  owner's rule, October 2026).
+
 - `src/` is TypeScript, ESM, compiled to `dist/` by `npm run build`
   (`prepare` runs it on install, so a git dependency works). Keep it
   app-agnostic: anything that reads an app's own state (a node's
