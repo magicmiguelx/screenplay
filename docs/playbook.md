@@ -94,6 +94,13 @@ form to work through while you do.
   element. It is installed by `page.addInitScript`, so it is in every
   document the page loads. Init scripts run on a navigation, not on
   `page.setContent()`: load the app with `page.goto()`.
+- **The caption sits above the picture card.** The overlay's layers are
+  the spotlight, the picture, the caption, the card, the ring and the
+  cursor, in that order: the first films' hook (a caption over the flat
+  diagram) came out dim because the caption was under the picture's
+  backdrop, and the 9:16 cut made it plain. A recorder change this
+  small still re-records what it shows: every video with a picture and a
+  caption together.
 - **Refuse browser full screen.** A real `requestFullscreen` in headless
   Chromium resizes the screencast's surface and the frames come out
   cropped and zoomed. The overlay makes it reject; an app that falls back

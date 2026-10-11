@@ -1,4 +1,7 @@
-// The overlay drawn over the app while it is recorded. Headless Chromium
+// The overlay drawn over the app while it is recorded. Its layers, bottom
+// to top: the spotlight, the picture, the caption (above the picture's
+// dim backdrop: a caption over a picture card was dim in a first film's
+// hook), the card, the click ring, the cursor. Headless Chromium
 // draws no cursor, so the page gets one: a pointer that glides to each
 // control (a CSS transition, so it moves smoothly even while a
 // software-rendered scene runs at a few frames a second), a ring on each
@@ -52,20 +55,20 @@ export function overlay(opts: OverlayOptions = {}) {
   const beat = Math.max(0, Math.round(opts.heartbeat ?? 12));
   const css = `
 #demo-overlay { position: fixed; inset: 0; pointer-events: none; z-index: 2147483647; font: 500 20px/1.4 system-ui, -apple-system, 'Segoe UI', sans-serif; }
-#demo-overlay .cursor { position: absolute; left: 0; top: 0; width: 26px; height: 26px; transition-property: transform; transition-timing-function: cubic-bezier(.45,.05,.25,1); filter: drop-shadow(0 2px 3px rgba(0,0,0,.55)); }
-#demo-overlay .ring { position: absolute; width: 44px; height: 44px; margin: -22px 0 0 -22px; border-radius: 50%; border: 3px solid #ffd54a; opacity: 0; }
+#demo-overlay .cursor { position: absolute; left: 0; top: 0; width: 26px; height: 26px; transition-property: transform; transition-timing-function: cubic-bezier(.45,.05,.25,1); filter: drop-shadow(0 2px 3px rgba(0,0,0,.55)); z-index: 5; }
+#demo-overlay .ring { position: absolute; width: 44px; height: 44px; margin: -22px 0 0 -22px; border-radius: 50%; border: 3px solid #ffd54a; opacity: 0; z-index: 4; }
 #demo-overlay .ring.on { animation: demo-ring .55s ease-out; }
 @keyframes demo-ring { from { transform: scale(.35); opacity: 1; } to { transform: scale(1.25); opacity: 0; } }
-#demo-overlay .caption { position: absolute; left: 50%; bottom: 96px; transform: translateX(-50%); max-width: 74%; padding: 12px 22px; border-radius: 12px; background: rgba(9, 13, 22, .9); color: #f4f7fb; text-align: center; box-shadow: 0 8px 28px rgba(0,0,0,.45); border: 1px solid rgba(255,255,255,.12); opacity: 0; transition: opacity .3s; }
+#demo-overlay .caption { position: absolute; left: 50%; bottom: 96px; transform: translateX(-50%); max-width: 74%; padding: 12px 22px; border-radius: 12px; background: rgba(9, 13, 22, .9); color: #f4f7fb; text-align: center; box-shadow: 0 8px 28px rgba(0,0,0,.45); border: 1px solid rgba(255,255,255,.12); opacity: 0; transition: opacity .3s; z-index: 2; }
 #demo-overlay .caption.top { bottom: auto; top: 64px; }
 #demo-overlay .caption.on { opacity: 1; }
-#demo-overlay .card { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; background: radial-gradient(ellipse at 50% 40%, rgba(22, 34, 58, .94), rgba(6, 9, 16, .97)); color: #fff; opacity: 0; transition: opacity .45s; text-align: center; padding: 0 12%; }
+#demo-overlay .card { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; background: radial-gradient(ellipse at 50% 40%, rgba(22, 34, 58, .94), rgba(6, 9, 16, .97)); color: #fff; opacity: 0; transition: opacity .45s; text-align: center; padding: 0 12%; z-index: 3; }
 #demo-overlay .card.on { opacity: 1; }
 #demo-overlay .card .kicker { font-size: .9em; letter-spacing: .14em; text-transform: uppercase; color: #8fb8ff; }
 #demo-overlay .card h1 { margin: 0; font-size: 2.4em; font-weight: 700; letter-spacing: -.01em; }
 #demo-overlay .card p { margin: 0; font-size: 1.1em; color: #c9d4e5; max-width: 45em; }
 #demo-overlay .card .brand { position: absolute; bottom: 36px; font-size: .8em; color: #7f8ba0; letter-spacing: .04em; }
-#demo-overlay .picture { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(6, 9, 16, .82); opacity: 0; transition: opacity .4s; }
+#demo-overlay .picture { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(6, 9, 16, .82); opacity: 0; transition: opacity .4s; z-index: 1; }
 #demo-overlay .picture.on { opacity: 1; }
 #demo-overlay .picture img { max-width: 78%; max-height: 74%; border-radius: 10px; box-shadow: 0 18px 60px rgba(0,0,0,.6); transform: rotate(-1.2deg); }
 #demo-overlay .spot { position: absolute; border: 3px solid #ffd54a; border-radius: 10px; box-shadow: 0 0 0 4000px rgba(0,0,0,.28); opacity: 0; transition: opacity .3s, left .3s, top .3s, width .3s, height .3s; }
