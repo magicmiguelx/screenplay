@@ -103,6 +103,19 @@ are not repeated here; the shape is what to take:
 - **Two seats in one recording.** A realtime feature (live combat, a join
   request, a claim) is shown from the second seat as a picture card: the
   other context's page screenshotted and held with `still()`.
+- **The survey reads the components, not the tests' idea of them.** The
+  app's own smoke specs named a "backpack" tab and labelled selects that
+  the source no longer had; the beats written from them would have
+  failed on the first take. Before a spec is written, an inventory of
+  the exact accessible names (roles, labels, aria-labels, dialog titles)
+  is read from the component source, and the roadmap is corrected where
+  it differs. A stale smoke suite is itself a finding for the app.
+- **A Playwright project without `"type": "module"` compiles its specs
+  to CommonJS,** and an `.mjs` config imported from one comes out as CJS
+  and fails to load ("exports is not defined in ES module scope"). The
+  project's config is then a CommonJS `screenplay.config.js`, passed to
+  the CLI with `--config`, and helpers use `__dirname`, not
+  `import.meta`.
 - **Proof levels, not a yes/no.** Where only six flows have e2e specs,
   the table says which proof each video rests on (e2e, integration, unit),
   and a feature with none is a risk item, not a video.

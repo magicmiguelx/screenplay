@@ -42,7 +42,10 @@ later kit change can be ported.
 ## The project's files
 
 1. **`screenplay.config.mjs`** at the project root
-   (`templates/screenplay.config.mjs`): where the scripts and the videos
+   (`templates/screenplay.config.mjs`; a project without `"type":
+   "module"` uses a CommonJS `screenplay.config.js` instead, since
+   Playwright compiles its specs to CJS and an `.mjs` import then fails
+   to load, and passes it to the CLI with `--config`): where the scripts and the videos
    are, the voice, the `say` rules for the product's own words, the
    `undo` rules for the transcription check.
 2. **The list of videos** (`templates/tutorials.ts`): one module the app
