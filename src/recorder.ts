@@ -53,6 +53,14 @@ export class Recorder {
   private recording = false;
   /** While paused: when the picture stopped. */
   private pausedAt: number | null = null;
+  /** Seconds of frames drawn by hand in the current pause. */
+  private drawnInPause = 0;
+  /**
+   * Called on resume() with the cut's length and the seconds of frames
+   * drawn by hand in it (wall-clock seconds, video seconds): the driver
+   * gives a line spoken across the cut the cut's length back.
+   */
+  onResume?: (cut: number, drawn: number) => void;
   /** Waiting for a frame to be drawn (painted()). */
   private painters: ((frame: Frame) => void)[] = [];
   /** When recording started, by this process's clock (seconds). */
@@ -114,8 +122,12 @@ export class Recorder {
   }
 
   resume() {
+    const pausedAt = this.pausedAt;
+    const drawn = this.drawnInPause;
     this.recording = true;
     this.pausedAt = null;
+    this.drawnInPause = 0;
+    if (pausedAt !== null) this.onResume?.(Date.now() / 1000 - pausedAt, drawn);
   }
 
   get paused() { return !this.recording; }
@@ -158,6 +170,7 @@ export class Recorder {
     if (this.recording || this.pausedAt === null) throw new Error('addFrame() needs the screencast paused.');
     const file = this.nextFile();
     writeFileSync(file, data);
+    this.drawnInPause += duration;
     this.keep(file, Date.now() / 1000, duration);
   }
 

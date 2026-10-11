@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { Demo, VIDEO, configure } from '../src/index.js';
 
@@ -42,12 +42,19 @@ test('a small page, recorded with captions, a card and the script files', async 
   // A real navigation: init scripts (the overlay) do not run for setContent().
   await page.route('https://smoke.test/**', r => r.fulfill({ status: 200, contentType: 'text/html', body: PAGE }));
   await page.goto('https://smoke.test/');
+  // A spoken length for one line, as a voiced recording would have kept: the recording waits for it.
+  mkdirSync(OUT, { recursive: true });
+  writeFileSync(resolve(OUT, 'voice.json'), JSON.stringify({ 'Add one counts up.': 3.0 }));
   const demo = new Demo(page, { durationsFile: resolve(OUT, 'voice.json'), voiced: false });
   await demo.start();
 
   await demo.card('Screenplay · smoke test', 'A counter', 'Two buttons, a field and a slider, driven on camera.', 2500);
   await demo.say('Add one counts up.', { keep: true });
   await demo.click(page.locator('#add'), 400);
+  // A cut while the line is still being spoken: the line keeps its room (an earlier version lost the cut's length of it).
+  demo.rec.pause();
+  await demo.wait(1500);
+  demo.rec.resume();
   await demo.click(page.locator('#add'), 400);
   await demo.clearNote();
   await expect(page.locator('#count')).toHaveText('2');
@@ -79,6 +86,8 @@ test('a small page, recorded with captions, a card and the script files', async 
   expect(probed).toBeGreaterThan(8);
   expect(Math.abs(probed - length)).toBeLessThan(1.5);
   expect(lines.map(l => l.kind)).toEqual(['card', 'caption', 'caption', 'caption', 'card']);
+  // The spoken line's room, in the video, covers its 3 s of voice despite the 1.5 s cut inside it.
+  expect(lines[1].end - lines[1].start).toBeGreaterThan(3.0);
   // The opening card is in the picture within a second and a half, and stays its 2.5 s.
   expect(lines[0].start).toBeGreaterThan(0.2);
   expect(lines[0].start).toBeLessThan(1.5);

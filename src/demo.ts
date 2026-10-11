@@ -72,6 +72,16 @@ export class Demo {
     if (this.durationsFile) {
       try { this.spoken = JSON.parse(readFileSync(this.durationsFile, 'utf8')); } catch { /* a new file */ }
     }
+    // A cut while a line is still being spoken takes the cut's length out
+    // of the line's room (the wall clock runs on while the picture stops):
+    // give it back, so the caption stays up until the voice is done in the
+    // video. Frames drawn by hand in the cut already carried the line
+    // (drawFrames and still() last at least the rest of it), so a cut with
+    // drawn frames extends nothing.
+    this.rec.onResume = (cut, drawn) => {
+      const pausedAt = Date.now() - cut * 1000;
+      if (drawn === 0 && this.speechEnd > pausedAt) this.speechEnd += cut * 1000;
+    };
   }
 
   /** Install the overlay in this and every later document; call before the first navigation. */
@@ -398,7 +408,8 @@ export class Demo {
       this.rec.addFrame(await this.page.screenshot({ type: 'jpeg', quality: 92 }), 1 / fps);
     }
     this.rec.resume();
-    this.speechEnd = Math.min(this.speechEnd, Date.now());
+    // The video has moved on by `length`: the line on screen has been spoken.
+    this.speechEnd = 0;
   }
 
   /**
@@ -415,7 +426,7 @@ export class Demo {
     this.rec.pause();
     this.rec.addFrame(await this.page.screenshot({ type: 'jpeg', quality: 92 }), length);
     this.rec.resume();
-    this.speechEnd = Math.min(this.speechEnd, Date.now());
+    this.speechEnd = 0;
   }
 
   /** A key press, then a pause. */

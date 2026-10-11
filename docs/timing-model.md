@@ -73,6 +73,7 @@ or after `now + FADE` have arrived.
 | `cardAcross()` | 60 % of `ms` (or the voice less 40 %) on camera, the cut, 0.9 s to settle, 40 % of `ms` on camera |
 | `drawFrames()` / an orbit / `still()` | lasts at least the rest of the line being spoken plus 0.3 s |
 | a line set while paused | logged after the fade (0.5 s), with no frame to wait for; placed on the first frame drawn after it (each drawn frame carries the moment it was drawn) |
+| a cut while a line is spoken | on resume the line's remaining speech grows by the cut's length (`Recorder.onResume`), unless frames were drawn in the cut, which lasted at least the rest of the line |
 
 ## The drift that was fixed
 

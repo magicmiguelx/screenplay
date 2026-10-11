@@ -227,6 +227,15 @@ The one lesson that cost the most. The full model is in
   changed lines.
 - **A drawn move gives the voice room.** An orbit, and a drawn still,
   lasts at least as long as what is left of the line being spoken.
+- **A cut gives a spoken line its length back.** The wall clock runs on
+  while the picture stops, so a cut during a line (a page load behind a
+  kept caption) took the cut's length out of the line's room: the
+  caption came down, and the next line started, before the voice was
+  done (two lines of the account tutorial, caught by the script table's
+  Room against Voice). Now the driver extends the line by the cut on
+  resume, unless frames were drawn in the cut, which carried the line
+  already. Still: say a line in full before a cut when you can; the
+  picture after the cut is a new thought.
 
 ## 4. Writing for the ear
 
