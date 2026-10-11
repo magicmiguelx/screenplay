@@ -78,6 +78,8 @@ test('Plenoview in 20 seconds', async ({ page }) => {
   await demo.wait(1200);
   await demo.clickSettled(() => nodeScreenPos(page, 'SAP S/4HANA'), 400);
   await page.locator('#properties .highlight-modes button[data-mode="downstream"]').click();
+  // The off-camera click moved the cursor to the node: park it again.
+  await demo.moveTo(VIDEO.width - 24, VIDEO.height - 24, 0);
   await demo.wait(3000);
   await demo.note('Pick a system. See everything it feeds.', { voice: 'Pick any system... and see everything it feeds.' });
   await orbit(demo, 2.8, { turns: 0.08, fps: 20 });

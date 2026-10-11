@@ -53,7 +53,8 @@ form to work through while you do.
   mechanic is off camera, and every frame is drawn by hand (next
   section): a film has no room for the screencast's waits. Nothing is
   clicked on camera, so the cursor is parked in a corner for the whole
-  film (the first take had it in the closing card's title). A tutorial
+  film, and parked again after every off-camera click, which moves it
+  (two takes had it in the closing card's title). A tutorial
   explains; a film sells; the landing page gets the film.
 
 ## 2. Recording
