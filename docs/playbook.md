@@ -158,14 +158,17 @@ form to work through while you do.
   from the running stream, then discards them: the video starts with the
   opening card, not two seconds of the editor.
 - **A take that hangs is run again with `DEBUG=pw:api` and a
-  `--timeout` cap.** The last action in the log names the step. The
-  phone tutorial hung in a `waitForFunction` after a hash-only
-  navigation from the signed-in editor to a share link: not a page load,
-  so the shared view was never remounted (and a first take had got lucky).
-  A page that must start fresh gets `page.goto()` on a fresh document,
-  and the sign-in or the editor comes after, in a cut. And stop a stuck
-  run by its process id: `pkill -f` with a pattern that matches your own
-  shell's command line kills the shell that typed it.
+  `--timeout` cap,** and then with a small diagnostic spec that logs the
+  page's console and state every few seconds. The phone tutorial hung
+  twice in a `waitForFunction` for the shared view; the log blamed the
+  navigation, the diagnostic showed the landing page: the spec had read
+  the share link's input before the app had filled it in, and sent the
+  phone to a URL made of the placeholder "Preparing the link…" (a first
+  take had won the race). Read a value the app computes only once it is
+  what you expect (`expect(input).toHaveValue(/#\/view/)`), as the app's
+  own test did. And stop a stuck run by its process id: `pkill -f` with
+  a pattern that matches your own shell's command line kills the shell
+  that typed it.
 - **Record one video by its title, unanchored.** Playwright's `-g`
   matches the file path and the title together, so `-g "^7 ·"` finds
   nothing and `-g " 7 · "` finds the video (a kit README said the first
