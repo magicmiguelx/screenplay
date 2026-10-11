@@ -82,6 +82,31 @@ are not repeated here; the shape is what to take:
   app's own narrow layout (a phone mode) and its own spec. Plan it as a
   separate item, blocked on the app having that layout.
 
+### What a second app taught the method (pf1e-campaigner, October 2026)
+
+- **A real backend is a fixture, not a mock.** An app whose sign-in and
+  data are a hosted auth tenant and a hosted database (Clerk, Supabase)
+  has no mock backend to record against; its e2e harness's dev tenant and
+  test users are the recording environment, and the roadmap names them in
+  phase 1 (with the AI key, the mail key and error reporting left unset).
+- **An AI call with no injection point is stubbed at the browser.**
+  Playwright's `page.route()` on the app's own API routes, answering
+  fixture JSON that parses against the app's response schema, needs no
+  change to the app and nothing reaches the provider.
+- **Pricing and copy that change on a date re-record.** An app mid-way
+  through a billing switch shows the switch in its banners; record with
+  the app's phase override (`BILLING_PHASE=pro-only`) so the recordings
+  show the state they will be watched in.
+- **Content under remediation is avoided in fixtures.** When the app's
+  own audits say which catalogs are trustworthy, the example characters
+  use those, so a fix-up PR does not re-record the series.
+- **Two seats in one recording.** A realtime feature (live combat, a join
+  request, a claim) is shown from the second seat as a picture card: the
+  other context's page screenshotted and held with `still()`.
+- **Proof levels, not a yes/no.** Where only six flows have e2e specs,
+  the table says which proof each video rests on (e2e, integration, unit),
+  and a feature with none is a risk item, not a video.
+
 ## 3. The roadmap
 
 Phases in order, every item with what "done" looks like:
