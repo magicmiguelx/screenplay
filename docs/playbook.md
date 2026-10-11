@@ -161,6 +161,31 @@ form to work through while you do.
   strings; the failure screenshot showed the default diagram, which was
   the clue). Edit the docs, not the app, while a recording runs, or
   record from a second checkout.
+- **The dev server's own chrome is in every frame.** Next's dev-tools
+  button sat in the corner of the first PF1e Campaigner take. Hide it
+  in the project's init script (a style for `nextjs-portal`), not in
+  the app's config: the videos should not change what the owner sees.
+- **A route a seat may not open hangs the take at its next locator.**
+  The bestiary of PF1e Campaigner redirects a player to the hub; the
+  spec opened it as the player and waited on a filter that never came.
+  Survey which routes redirect which role (`grep redirect` by mode)
+  before writing a beat, and give each beat the seat that may open it.
+- **Fixtures are complete builds.** A sheet imported with an unspent
+  feat opened under an "unfinished build" banner and an advisor popover
+  over the picture; the fighter would have shown four more. Assess every
+  fixture with the app's own completeness check before it is recorded.
+- **Sign in by what the tenant allows.** A social-only Clerk instance
+  answers "Identifier is invalid" to any password sign-in; a sign-in
+  token minted with the secret key and redeemed as a ticket works on any
+  instance, and the harness already holds that key.
+- **Record against a database that trusts the test tenant.** The hosted
+  project the recording session held rejected the dev instance's
+  tokens (PostgREST `PGRST301`); the first take died in its seeding. A
+  local stack (`supabase start` with the dev instance as a third-party
+  issuer) records with nothing written to anyone's data. In a cloud
+  container Docker has to be started by hand, without a bridge and with
+  a host-gateway address, on `overlay2` (`vfs` copies every layer and
+  fills the disk), and the registries rate-limit anonymous pulls.
 - **The cost of a drawn frame, measured once.** In a four-core container
   with no GPU, a full-HD screenshot of a lit three.js scene takes 2.5 to
   3.7 s (40 frames in 115 s, measured twice); at the layout size about

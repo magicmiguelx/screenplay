@@ -20,6 +20,8 @@ prove, read in this order:
 | The e2e tests | Every feature with a passing test can be shown, and its test is the spec's skeleton: selectors, fixtures, mocks. No test, no video (a risk item, not a video item). |
 | UI strings (i18n, menu labels) | The words the cards must use; titles that read badly aloud (a spoken form); brand words and acronyms for the `say` rules. |
 | What a dev build exposes (`window.*` handles, data attributes) and what must never show (keys, emails, payments) | The driver's handles, and the mocks and fixtures every video shares. |
+| Which routes each role may open (`redirect` by mode, plan gates) | The seat each beat is recorded from: a route that bounces a role hangs the take at its next locator. |
+| The auth tenant and the database the tests use (identifier types, which project trusts which issuer) | Whether the harness can sign in and write at all before a frame is recorded; a local stack when the hosted project is someone's data. |
 
 | The videos the app already has (its list module, the specs, the served folder, the scripts) | What is done: each a row with its length and date, every feature it covers crossed off. An app with a series gets a roadmap of the gaps, not a second series. |
 
