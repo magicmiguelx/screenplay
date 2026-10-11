@@ -48,6 +48,40 @@ For every video: an id, its group, the file name, the idea, the beats
 that proves each, the mocks and fixtures it needs, a target length, and
 the words the voice will need rules for.
 
+### What the marketing research says, and where it meets the playbook
+
+The owner's review of the video-marketing literature (HubSpot's video
+reports, Wistia's State of Video, Vidico's and Pexo's app-explainer
+guides, October 2026) agrees with the playbook on the shape of a promo
+and adds a few rules worth planning for. The figures those sources quote
+(completion rates, three-second hold rates) are vendors' own numbers and
+are not repeated here; the shape is what to take:
+
+- **Problem → solution → proof → call to action.** The hook is the
+  viewer's problem, in the first three seconds, never the logo or a
+  feature list; the app is shown solving it (its real interface, paced
+  at reading speed, not cut so fast the screen cannot be read); then a
+  proof point; then one next step. The playbook's arc is the same with
+  one gap: **proof**. A proof line is a measured number, a published
+  rating or a named customer, and the product has to have it before the
+  film can say it (Plenoview's film, October 2026, has none to claim, so
+  the beats stand in for it: the picture is the proof). Plan the proof
+  beat as blocked on the product until it is true.
+- **Length by placement.** A landing-page hero: 45 to 90 seconds, the
+  full arc. Paid social, Reels, Shorts, an app-store preview: 15 to 30
+  seconds, one idea. A single feature or an onboarding clip: 10 to 20
+  seconds. Plan the longest cut first and derive the short ones from the
+  same spec (the kit makes that cheap: the beats are the same functions
+  with fewer lines), and name each cut's placement in the roadmap.
+- **Designed for muted viewing.** Captions carry the whole message, the
+  first frame has motion and text, the voice is an enhancement: which is
+  how the kit works already (every line is a caption, the hook is in the
+  first frame).
+- **Vertical for social.** 9:16 cuts for social and app stores; 16:9 for
+  the site. The kit records one layout size; a vertical cut needs the
+  app's own narrow layout (a phone mode) and its own spec. Plan it as a
+  separate item, blocked on the app having that layout.
+
 ## 3. The roadmap
 
 Phases in order, every item with what "done" looks like:
