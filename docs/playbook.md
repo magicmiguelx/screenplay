@@ -157,6 +157,15 @@ form to work through while you do.
   page as it was before recording started. `demo.start()` waits for frames
   from the running stream, then discards them: the video starts with the
   opening card, not two seconds of the editor.
+- **Record one video by its title, unanchored.** Playwright's `-g`
+  matches the file path and the title together, so `-g "^7 ·"` finds
+  nothing and `-g " 7 · "` finds the video (a kit README said the first
+  for a day).
+- **Typing behind a live scene is a second a key.** A dialog over a
+  scene that renders on behind it (the account setup over the editor)
+  made every keystroke take a second in software: thirty-two characters
+  cost twenty-five seconds of video. Type off camera (`fill()` in a cut)
+  and show the field full, unless the typing is the point and short.
 - **Select lists never draw.** Headless Chromium does not render an open
   `<select>`: `choose()` rings the control and sets the value at once.
   Range inputs are dragged in steps and then `fill()`ed so the value lands

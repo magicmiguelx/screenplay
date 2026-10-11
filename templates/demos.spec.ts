@@ -7,7 +7,7 @@ import { TUTORIALS, type TutorialId } from '../../src/ui/tutorials';
 // import { openApp } from './helpers';
 
 // The tutorial videos. Not tests: skipped unless DEMOS=1
-// (DEMOS=1 npx playwright test demos, or one: -g "^2 ·"). Each one drives
+// (DEMOS=1 npx playwright test demos, or one: -g " 2 · "). Each one drives
 // the app the way a person would, with a cursor and captions drawn over it,
 // and is encoded with the system's ffmpeg; with ELEVENLABS_API_KEY set,
 // each line is voiced as it is recorded and the voice mixed in. Mocked

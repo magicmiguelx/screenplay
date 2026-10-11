@@ -47,8 +47,8 @@ add a test to its demos spec, record it alone, then with the voice, then
 check it.
 
 ```sh
-DEMOS=1 npx playwright test demos -g "^7 ·"      # record one video (no key: captions timed by voice.json or reading time)
-ELEVENLABS_API_KEY=… DEMOS=1 npx playwright test demos -g "^7 ·"   # voiced as it records, the clips mixed in
+DEMOS=1 npx playwright test demos -g " 7 · "      # record one video (no key: captions timed by voice.json or reading time)
+ELEVENLABS_API_KEY=… DEMOS=1 npx playwright test demos -g " 7 · "   # voiced as it records, the clips mixed in
 npx screenplay-voiceover check 07               # every clip transcribed and compared with what it should say
 ```
 
