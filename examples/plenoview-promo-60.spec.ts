@@ -26,7 +26,7 @@ import { openApp, nodeScreenPos } from './helpers';
 import { Demo, VIDEO, VIDEO_HD } from 'screenplay-kit';
 import { orbit } from 'screenplay-kit/three';
 import { AI_WAIT, mockClaude } from './aiMock';
-import { FUNDED, PICTURE_DRAFT, estatePicture } from './demoFixtures';
+import { FUNDED, PICTURE_DRAFT, estatePicture, slidePicture } from './demoFixtures';
 
 const OUT = resolve(import.meta.dirname, '../../public/promo');
 const SCRIPTS = resolve(import.meta.dirname, '../../docs/demo-scripts');
@@ -54,6 +54,7 @@ async function example(page: Page, id: string) {
 test('Plenoview in a minute', async ({ page }) => {
   page.on('dialog', d => void d.accept());
   const png = await estatePicture(page);
+  const slide = await slidePicture(page); // the migration explained as bullet points, drawn in a page
   await Demo.prepare(page);
   await openApp(page, undefined, { me: FUNDED });
   await mockClaude(page, {
@@ -71,22 +72,36 @@ test('Plenoview in a minute', async ({ page }) => {
   demo.rec.pause();
   await park();
 
-  // The problem: the flat diagram.
-  await demo.note('Boxes and arrows, one platform at a time. Nobody sees the whole thing.', {
-    voice: 'Boxes and arrows, one platform at a time... and nobody in the room can see the whole thing.',
+  // The problem, as two questions (the owner's opening): the sea of diagrams, then the slides.
+  // The caption is each question's short form; the voice asks it in full.
+  await demo.note('Lost in a sea of architecture diagrams?', {
+    voice: "Have you ever tried to map out your enterprise's systems... and got lost in a sea of architecture diagrams? Wishing you could see every platform, and how they fit together, in one view?",
   });
   await demo.still(5);
   demo.rec.pause();
   await demo.clearNote();
+  await demo.picture(`data:image/png;base64,${slide.toString('base64')}`);
+  await demo.wait(600);
+  await demo.note('Explaining a migration with slides?', {
+    voice: 'Have you ever tried to explain a system, or a data migration, to a client... and struggled to tell the journey with slides?',
+  });
+  await demo.still(4);
+  demo.rec.pause();
+  await demo.clearNote();
   await demo.picture(null);
 
-  // The reveal: full screen, the whole estate turned in 3D; then the stages, drifting.
+  // The reveal: full screen, the product named over the whole estate turning in 3D; then the stages, drifting.
   await page.keyboard.press('f');
   await demo.wait(2500);
+  await demo.note('This is Plenoview: a 3D architecture and planning tool.', {
+    voice: 'This is Plenoview. A 3D architecture and planning tool, for system architects and integrators alike.',
+  });
+  await orbit(demo, 4, { fps: 15 });
+  demo.rec.pause();
   await demo.note('Plenoview shows the whole enterprise in one 3D view. Every platform is a layer.', {
     voice: 'Plenoview shows the whole enterprise, in one 3D view. Every platform is a layer.',
   });
-  await orbit(demo, 6, { fps: 15 });
+  await orbit(demo, 5, { fps: 15 });
   demo.rec.pause();
   await demo.note('The flow runs left to right: Source, Ingest, Store, Process, Serve, Insight.', {
     voice: 'The flow runs from left to right, across every platform: Source, Ingest, Store, Process, Serve, and Insight.',

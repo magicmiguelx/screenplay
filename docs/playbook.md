@@ -56,6 +56,18 @@ form to work through while you do.
   film, and parked again after every off-camera click, which moves it
   (two takes had it in the closing card's title). A tutorial
   explains; a film sells; the landing page gets the film.
+- **A hook written as questions needs a picture per question.** The
+  owner's opening for the hero's cut asks two questions ("lost in a sea
+  of architecture diagrams?", "explaining a migration with slides?") and
+  then names the product. Each question is asked over the picture it is
+  about (the whiteboard, then a slide drawn in a page and screenshotted,
+  like the whiteboard), the caption is the question's short form of four
+  to six words while the voice asks it in full, and the product is named
+  over the reveal, not over the problem. A question is a line the viewer
+  answers in their head, so it is given its own still and the next one
+  waits for it; two questions and the naming took fifteen seconds, which
+  is the hook's budget in a minute, and why the twenty-second film keeps
+  its one-line hook.
 - **A video for a phone is a layout, not a new recorder.** The page is
   laid out at the phone's size (`layout`) and drawn at full HD portrait
   (`output` with the device scale factor), the overlay is sized for it
