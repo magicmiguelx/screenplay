@@ -100,7 +100,11 @@ form to work through while you do.
   diagram) came out dim because the caption was under the picture's
   backdrop, and the 9:16 cut made it plain. A recorder change this
   small still re-records what it shows: every video with a picture and a
-  caption together.
+  caption together. And a change to the overlay is checked on a rendered
+  frame before anything is re-recorded: a port of this fix into an app's
+  copy of the overlay edited nothing, and an hour of re-recording ran on
+  the old CSS before a page with a picture and a caption (ten lines of
+  Playwright) showed the caption still dim.
 - **Refuse browser full screen.** A real `requestFullscreen` in headless
   Chromium resizes the screencast's surface and the frames come out
   cropped and zoomed. The overlay makes it reject; an app that falls back
