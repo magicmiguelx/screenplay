@@ -66,7 +66,10 @@ test('a small page, recorded with captions, a card and the script files', async 
   await demo.spot(page.locator('#count'));
   await demo.say('Ten, drawn frame by frame.', { ms: 1200 });
   await demo.spot(null);
+  // The poster is a full-size screenshot: over a second in a slow container, so its cost is measured, not assumed, below.
+  const posterFrom = Date.now();
   await demo.poster(resolve(OUT, 'smoke.jpg'));
+  const posterSecs = (Date.now() - posterFrom) / 1000;
   // The closing card set while paused and drawn as a still: logged after the fade, placed where the still starts.
   demo.rec.pause();
   await demo.card('The end', 'That is the kit', 'Thanks for watching.', 0, undefined, { hold: true });
@@ -86,8 +89,8 @@ test('a small page, recorded with captions, a card and the script files', async 
   // Lines cost no dead time: the whole video is under 25 s.
   expect(length).toBeLessThan(25);
   expect(lines.at(-1)!.end).toBeGreaterThan(lines.at(-1)!.start + 1);
-  // The card set in the pause starts where the still starts: at the cut, a poster's screenshot after the line before it, not after the still.
-  expect(lines.at(-1)!.start).toBeLessThan(lines.at(-2)!.end + 1.2);
+  // The card set in the pause starts where the still starts: at the cut, the poster's screenshot and a breath after the line before it, not after the still.
+  expect(lines.at(-1)!.start).toBeLessThan(lines.at(-2)!.end + posterSecs + 0.8);
   expect(lines.at(-1)!.end - lines.at(-1)!.start).toBeGreaterThan(1.4);
   // The script files.
   const vtt = readFileSync(resolve(OUT, 'smoke.vtt'), 'utf8');

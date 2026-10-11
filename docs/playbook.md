@@ -163,6 +163,7 @@ form to work through while you do.
   that answers 204, with a title card standing in for the external page;
   the account to a mocked session. Delays in the mock give the viewer a
   believable wait, cut when it is long.
+- **A screenshot's cost is the machine's.** The smoke test's margin for the closing card once assumed the poster screenshot was quick; a slow container took over a second for it and failed the test by 28 ms. Measure a screenshot's cost where it matters (`Date.now()` around it) rather than budgeting it, in tests and in a take's timing alike.
 - **The poster is a frame.** Each video gets a still for `<video poster>`
   from `demo.poster()` at a good moment; the sales video takes its poster
   from the finished file with `ffmpeg -ss` instead (a screenshot of a lit,
