@@ -32,8 +32,17 @@ Read, in this order, and note what each says the product is for and does:
    stable classes or data attributes) and what it must never show (real
    keys, real emails, real payments): the mocks and fixtures the videos
    will reuse.
+7. The videos the app already has (its list module, its specs, the
+   served folder, the scripts beside them): each is a row in the
+   roadmap's "What exists", with its length and the date it was last
+   recorded, and every feature it covers is crossed off before anything
+   is proposed. An app with a series gets a roadmap of the gaps, not a
+   second series.
 
-Do not run the app or record anything in this step.
+Do not run the app or record anything in this step. Note any doc the
+survey finds stale (a README still naming a video the hero no longer
+links) and fix it in the same change as the roadmap: the survey is the
+one time someone reads everything side by side.
 
 ## 2. Propose the list
 
@@ -66,7 +75,11 @@ Phases, in order, each a list of items with what "done" looks like:
 2. **The first track**, then each later track, one video per item, in
    watching order; the promo after the tutorials it borrows from (its
    beats are their best moments). Each item: the video's id, its spec
-   test, the fixtures it waits on.
+   test, the fixtures it waits on. A video inserted into a numbered
+   series renumbers the cards after it, which re-records those videos
+   (the clips are cached; the picture is the time): say so, and fold the
+   re-recording into one the kit's rules already owe (a recorder change
+   re-records everything) when there is one pending.
 3. **Checks and shipping**: `voiceover check` on every line, the
    quality checks (`docs/quality-check.md`), the app's list and guide
    updated, the served-files test.
@@ -75,7 +88,11 @@ Give each phase an estimate from the measured numbers in
 `docs/history.md` (recording time per minute of video, lines per video),
 not from guesses, and say what the estimate is based on. Mark the items
 that need something the app does not yet have (a mock, a stable selector,
-a `window` handle) as blocked on it, in the app's own terms.
+a `window` handle, a kit feature its copy of the recorder lacks) as
+blocked on it, in the app's own terms, and a proof beat as blocked on the
+product until it has a measured number, a published rating or a named
+customer. Commit the roadmap the way the app's own rules say (its
+CLAUDE.md: a branch, or straight to `main`).
 
 ## 4. Hand it over
 

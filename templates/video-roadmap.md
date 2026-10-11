@@ -12,6 +12,16 @@ One paragraph: who the videos are for, what the product promises them in
 its own words (from the site copy), and what it has measured and may
 claim.
 
+## What exists
+
+For an app that already has videos: each one with its length and the
+date it was last recorded, and the features it covers (crossed off
+below). Skip the section for a first series.
+
+| Track | Videos |
+| --- | --- |
+| start | 1 What is it (1:30, 2026-10-08) · 2 … |
+
 ## Tutorials
 
 | # | Id | Track | File | Idea (after watching, the viewer can…) | Shows (feature: test that proves it) | Needs (fixtures, mocks, handles) | Target |
@@ -70,7 +80,9 @@ spoken form (`say` in `screenplay.config.mjs`): "<Brand>" → "<respelling>";
 ## Blocked on the app
 
 What the app must add before an item above can be recorded (a stable
-selector, a `window` handle, a mock), each with the item it unblocks.
+selector, a `window` handle, a mock, a kit feature its copy of the
+recorder lacks, a measured number or a published rating for a proof
+beat), each with the item it unblocks.
 
 ## Done
 

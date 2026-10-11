@@ -21,7 +21,12 @@ prove, read in this order:
 | UI strings (i18n, menu labels) | The words the cards must use; titles that read badly aloud (a spoken form); brand words and acronyms for the `say` rules. |
 | What a dev build exposes (`window.*` handles, data attributes) and what must never show (keys, emails, payments) | The driver's handles, and the mocks and fixtures every video shares. |
 
-Nothing is run or recorded in the survey.
+| The videos the app already has (its list module, the specs, the served folder, the scripts) | What is done: each a row with its length and date, every feature it covers crossed off. An app with a series gets a roadmap of the gaps, not a second series. |
+
+Nothing is run or recorded in the survey. The survey is the one time
+someone reads everything side by side, so a stale doc it turns up (a
+README still naming the video the hero no longer links) is fixed in the
+same change as the roadmap.
 
 ## 2. The list
 
@@ -99,8 +104,15 @@ Phases in order, every item with what "done" looks like:
    checks, the app's list and guide, the served-files test.
 
 An item that needs something the app does not have (a mock, a stable
-selector, a `window` handle) is marked blocked on it, in the app's terms,
-so the app's own backlog can take it.
+selector, a `window` handle, a kit feature its copy of the recorder
+lacks) is marked blocked on it, in the app's terms, so the app's own
+backlog can take it. A video inserted into a numbered series renumbers
+the cards after it and re-records those videos (the clips are cached, the
+picture is the time); the roadmap says so and folds that re-recording
+into one already owed (a recorder change re-records everything) when one
+is pending. Acronyms a viewer never says aloud get their noun in the
+lines ("an authenticator app", never "TOTP"); the roadmap's word list is
+where they are caught.
 
 ## 4. Estimates, from what was measured
 
