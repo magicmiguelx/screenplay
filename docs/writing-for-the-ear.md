@@ -86,12 +86,14 @@ screenplay-voiceover check 08 promo   # by name
 
 Each clip is transcribed with ElevenLabs Scribe and compared, word by
 word after normalising (lower case, no punctuation, spelled-out letters
-joined, number words as digits, the `say` respellings written back by the
-config's `undo` rules), with what was sent; lines with a word not heard are
-listed with what was sent and what was heard. Listen to those.
+joined, number words as digits, with "five thousand, six hundred" and
+the transcript's "5,600" both "5600", the `say` respellings written back
+by the config's `undo` rules), with what was sent; lines with a word not
+heard are listed with what was sent and what was heard. Listen to those.
 
 False positives seen: the transcriber's own spellings ("life cycle" for
-"lifecycle", "dialogue" for "dialog", "around" for "round"), a brand it
+"lifecycle", "dialogue" for "dialog", "around" for "round", American
+"armor" for a British "armour", "A DM's" joined as "ADM's"), a brand it
 writes its own way whatever is sent ("plano view", "PlanoView": the owner
 confirmed the clip says it right), and a web address said as "dot com"
 and written "plenoview.com" (the dot goes with the punctuation). Add such

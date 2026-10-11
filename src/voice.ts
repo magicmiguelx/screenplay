@@ -202,20 +202,52 @@ export function mix(video: string, clips: Placed[], opts: { crf?: number } = {})
 }
 
 /** Number words a transcript may write as digits. */
-const NUMBERS: Record<string, string> = { one: '1', two: '2', three: '3', four: '4', five: '5', six: '6', seven: '7', eight: '8', nine: '9', ten: '10', twenty: '20', thirty: '30', forty: '40', fifty: '50', eighty: '80', hundred: '100' };
+const UNITS: Record<string, number> = { zero: 0, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15, sixteen: 16, seventeen: 17, eighteen: 18, nineteen: 19 };
+const TENS: Record<string, number> = { twenty: 20, thirty: 30, forty: 40, fifty: 50, sixty: 60, seventy: 70, eighty: 80, ninety: 90 };
+const SCALES: Record<string, number> = { hundred: 100, thousand: 1000, million: 1000000 };
+const isNumberWord = (w: string) => w in UNITS || w in TENS || w in SCALES;
+
+/**
+ * Number words folded to one integer, as a transcript writes them: "five
+ * thousand, six hundred" and "5,600" both come out "5600", "nineteen" is
+ * "19", "a hundred and nine thousand" is "109000". An "and" is part of a
+ * number only after a scale word; "a" only before one.
+ */
+function foldNumbers(ws: string[]): string[] {
+  const out: string[] = [];
+  for (let i = 0; i < ws.length; ) {
+    const startsOne = ws[i] === 'a' && i + 1 < ws.length && ws[i + 1] in SCALES;
+    if (!isNumberWord(ws[i]) && !startsOne) { out.push(ws[i++]); continue; }
+    let total = 0, current = startsOne ? 1 : 0, afterScale = false;
+    if (startsOne) i++;
+    for (; i < ws.length; i++) {
+      const w = ws[i];
+      if (w === 'and' && afterScale && i + 1 < ws.length && isNumberWord(ws[i + 1])) continue;
+      afterScale = false;
+      if (w in UNITS) current += UNITS[w];
+      else if (w in TENS) current += TENS[w];
+      else if (w === 'hundred') { current = (current || 1) * 100; afterScale = true; }
+      else if (w in SCALES) { total += (current || 1) * SCALES[w]; current = 0; afterScale = true; }
+      else break;
+    }
+    out.push(String(total + current));
+  }
+  return out;
+}
 
 /**
  * Lower-case words without punctuation, for comparing a transcript with its
  * text: letters spelled out ("C S V") joined as the transcript writes them,
- * numbers as digits, "%" as "percent", `undo` rules (a project's respellings
- * written back: "plen-oh-view" → "plenoview") applied first.
+ * numbers as digits ("five thousand, six hundred" and "5,600" both "5600"),
+ * "%" as "percent", `undo` rules (a project's respellings written back:
+ * "plen-oh-view" → "plenoview") applied first.
  */
 export function normalize(text: string, undo: SayRule[] = []): string[] {
   let t = asSent(text).replace(/<break[^>]*\/>/g, ' ').toLowerCase();
   for (const [re, to] of undo) t = t.replace(re, to as string);
-  const ws = t
-    .replace(/(\d)%/g, '$1 percent').replace(/[’']/g, '').replace(/[^a-z0-9.]+/g, ' ').replace(/\.(?!\d)/g, ' ')
-    .split(/\s+/).filter(Boolean).map(w => NUMBERS[w] ?? w);
+  const ws = foldNumbers(t
+    .replace(/(\d)%/g, '$1 percent').replace(/(\d),(?=\d{3}\b)/g, '$1').replace(/[’']/g, '').replace(/[^a-z0-9.]+/g, ' ').replace(/\.(?!\d)/g, ' ')
+    .split(/\s+/).filter(Boolean));
   const out: string[] = [];
   let spelled = false;
   for (const w of ws) {

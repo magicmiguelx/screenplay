@@ -35,3 +35,11 @@ test('normalize compares a transcript with its text', () => {
   assert.deepEqual(normalize('twenty pounds’ worth'), ['20', 'pounds', 'worth']);
   configure({ say: [] });
 });
+
+test('normalize folds number words as a transcript writes them', () => {
+  assert.deepEqual(normalize('Built from nineteen source books. Five thousand, six hundred pages.'), ['built', 'from', '19', 'source', 'books', '5600', 'pages']);
+  assert.deepEqual(normalize('Built from 19 source books, 5,600 pages'), ['built', 'from', '19', 'source', 'books', '5600', 'pages']);
+  assert.deepEqual(normalize('A hundred and nine thousand builds'), ['109000', 'builds']);
+  assert.deepEqual(normalize('109,311 builds, two dollars a month'), ['109311', 'builds', '2', 'dollars', 'a', 'month']);
+  assert.deepEqual(normalize('feats, and monsters; one and two'), ['feats', 'and', 'monsters', '1', 'and', '2']);
+});
