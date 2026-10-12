@@ -44,6 +44,10 @@ time by the checklist below, and ticks it as it goes.
      do not run for `setContent()`); the driver throws if it is missing.
    - A user-facing change the videos show re-records them; a recorder
      change re-records all of them.
+   - Nothing in the picture is tilted on purpose: no rotated picture
+     card, no drawn page at an angle in a hook picture, no transform on
+     a still (the owner's rule, 12 October 2026; a one-degree tilt read
+     as a skewed frame).
 3. Claim in a video only what the product has measured.
 4. When something new is learned (a word the voice mishears, a timing
    problem, a headless quirk), add it to the playbook and to

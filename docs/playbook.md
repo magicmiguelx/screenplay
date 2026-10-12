@@ -70,11 +70,13 @@ form to work through while you do.
   sixty to ninety seconds a hero film gets (`docs/planning.md`) and why
   the twenty-second film keeps its one-line hook. The length label
   beside the film changes with every re-recording: measure the file.
-- **A picture card lies flat.** The first films tilted the picture a
-  degree, a photograph dropped on a desk; at video size, on a screenshot
-  full of straight lines, it read as a skewed frame (the owner of PF1e
-  Campaigner saw its combat board "come in skewed"). The card is drawn
-  straight now; the shadow carries the depth.
+- **Nothing is tilted on purpose.** The first films tilted the picture
+  card a degree, a photograph dropped on a desk, and the hook pictures
+  drew their PDF pages at an angle; at video size, on a screenshot full
+  of straight lines, a tilt reads as a skewed frame (the owner of PF1e
+  Campaigner saw its combat board "come in skewed" and asked for the
+  rule). The card is drawn straight, the shadow carries the depth, and a
+  drawn page lies square; the rule is in `CLAUDE.md`.
 - **A video for a phone is a layout, not a new recorder.** The page is
   laid out at the phone's size (`layout`) and drawn at full HD portrait
   (`output` with the device scale factor), the overlay is sized for it
