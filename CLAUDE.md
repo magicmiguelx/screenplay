@@ -50,6 +50,12 @@ time by the checklist below, and ticks it as it goes.
      fails the take, named, to be given a pause or fewer words (the
      owner's rule, 12 October 2026: the fast lines were heard as sped
      up).
+   - A caption sits where it covers the least: the overlay measures the
+     page's own content under its box at the bottom and the top and the
+     driver takes the emptier, moves it off anything the line then clicks
+     or spotlights, and logs the cover in the script's "Over" column;
+     `maxCover` fails a take on a line over it (the owner's rule, 12
+     October 2026: captions had covered what the line was about).
    - Nothing in the picture is tilted on purpose: no rotated picture
      card, no drawn page at an angle in a hook picture, no transform on
      a still (the owner's rule, 12 October 2026; a one-degree tilt read

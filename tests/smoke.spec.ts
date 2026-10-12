@@ -88,6 +88,14 @@ test('a small page, recorded with captions, a card and the script files', async 
   expect(lines.map(l => l.kind)).toEqual(['card', 'caption', 'caption', 'caption', 'card']);
   // The spoken line's room, in the video, covers its 3 s of voice despite the 1.5 s cut inside it.
   expect(lines[1].end - lines[1].start).toBeGreaterThan(3.0);
+  // Every caption was placed by what it would cover: a position and a measured cover, never on the spotlit element.
+  for (const l of lines.filter(l => l.kind === 'caption')) {
+    expect(['top', 'bottom']).toContain(l.at);
+    expect(l.cover).toBeGreaterThanOrEqual(0);
+    expect(l.cover).toBeLessThanOrEqual(1);
+  }
+  expect(lines[2].at).toBe('top');
+  expect(readFileSync(resolve(OUT, 'smoke.md'), 'utf8')).toContain('| Over |');
   // The opening card is in the picture within a second and a half, and stays its 2.5 s.
   expect(lines[0].start).toBeGreaterThan(0.2);
   expect(lines[0].start).toBeLessThan(1.5);

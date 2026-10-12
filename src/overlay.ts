@@ -35,11 +35,22 @@ export interface OverlayOptions {
   heartbeat?: number;
 }
 
+export interface Rect { x: number; y: number; width: number; height: number }
+/** Where a caption would sit and what it would cover there. */
+export interface Placement { cover: number; box: Rect }
+
 /** The overlay's API, on `window.__demo` once installed. */
 export interface OverlayApi {
   cursorTo(x: number, y: number, ms: number): void;
   press(x: number, y: number): void;
   caption(text: string | null, top?: boolean): void;
+  /**
+   * The caption's cover at each position: the share of a grid of points
+   * under its box that lands on the page's own content (text, controls,
+   * pictures), 0 to 1; plus 1 where the box would sit over `avoid` (the
+   * element a line is about). Measures `text` without showing it.
+   */
+  measure(text: string, avoid?: Rect | null): { bottom: Placement; top: Placement };
   card(kicker: string | null, title?: string, sub?: string): void;
   picture(src: string | null): void;
   spot(rect: { x: number; y: number; width: number; height: number } | null): void;
@@ -114,6 +125,41 @@ ${opts.css ?? ''}`;
       const c = $('.caption');
       if (text) { c.textContent = text; c.classList.toggle('top', top); }
       c.classList.toggle('on', !!text);
+    },
+    measure(text, avoid = null) {
+      const c = $('.caption');
+      const was = { text: c.textContent, top: c.classList.contains('top') };
+      c.textContent = text;
+      // What a point is on: the page's own content (text, a control, a picture), or a bare surface.
+      const content = (el: Element) => {
+        if (/^(INPUT|TEXTAREA|SELECT|BUTTON|A|IMG|SVG|CANVAS|VIDEO|LABEL|SUMMARY|OPTION)$/.test(el.tagName) || el.closest('svg')) return true;
+        for (const n of Array.from(el.childNodes)) if (n.nodeType === 3 && (n.textContent ?? '').trim()) return true;
+        // A background picture counts on a small element (an avatar, a thumbnail), not on the page's own backdrop.
+        const r = el.getBoundingClientRect();
+        if (r.width * r.height < innerWidth * innerHeight * 0.2 && getComputedStyle(el).backgroundImage !== 'none') return true;
+        return false;
+      };
+      const cover = (r: DOMRect) => {
+        let hit = 0, n = 0;
+        for (let i = 0; i < 12; i++) for (let j = 0; j < 4; j++) {
+          const x = r.left + ((i + 0.5) * r.width) / 12, y = r.top + ((j + 0.5) * r.height) / 4;
+          if (x < 0 || y < 0 || x > innerWidth || y > innerHeight) continue;
+          n++;
+          const el = document.elementsFromPoint(x, y).find(e => !e.closest('#demo-overlay'));
+          if (el && content(el)) hit++;
+        }
+        return n ? hit / n : 0;
+      };
+      const over = (r: DOMRect) => !!avoid && r.left < avoid.x + avoid.width && r.right > avoid.x && r.top < avoid.y + avoid.height && r.bottom > avoid.y;
+      const at = (top: boolean) => {
+        c.classList.toggle('top', top);
+        const r = c.getBoundingClientRect();
+        return { cover: cover(r) + (over(r) ? 1 : 0), box: { x: r.left, y: r.top, width: r.width, height: r.height } };
+      };
+      const out = { bottom: at(false), top: at(true) };
+      c.classList.toggle('top', was.top);
+      c.textContent = was.text;
+      return out;
     },
     card(kicker, title, sub) {
       const c = $('.card');

@@ -89,6 +89,16 @@ slowest speed fails the take with the line named. Changing the ceiling
 remakes the clips over it on their next use, which changes their
 lengths: re-record the videos they are in.
 
+## Where captions sit
+
+Nothing to configure: every caption is measured at the bottom and the
+top of the frame and drawn where it covers the least of the page's own
+content, and it moves off the element the line then clicks or
+spotlights. A line can insist with `top: true` or `bottom: true` (the
+phone layout wants `top`). The script's "Over" column records each
+line's position and cover; `new Demo(page, { maxCover: 0.6 })` fails a
+take on a line over it, `coverNote` sets the level the log lists.
+
 ## Documenting it in the project
 
 Put a short section in the project's contributor notes: the commands,

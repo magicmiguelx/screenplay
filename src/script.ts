@@ -8,7 +8,11 @@ import { words } from './voice.js';
 // re-mix without recording), and a Markdown table of the same for people.
 
 /** One line of the script: a title card or a caption, what is spoken, and its span in the video (seconds). */
-export interface ScriptLine { kind: 'card' | 'caption'; text: string; voice: string; start: number; end: number }
+export interface ScriptLine {
+  kind: 'card' | 'caption'; text: string; voice: string; start: number; end: number;
+  /** A caption's place and what it covered there: the share of the page's content under its box, 0 to 1 (over 1: on the element the line is about). */
+  at?: 'bottom' | 'top'; cover?: number;
+}
 
 /** 83.5 s → "01:23.500" (WebVTT) */
 export const vttTime = (t: number) => {
@@ -44,6 +48,7 @@ export const vtt = (lines: ScriptLine[]) => ['WEBVTT', '', ...lines.flatMap((l, 
 
 export const json = (lines: ScriptLine[]) => JSON.stringify(lines.map(l => ({
   kind: l.kind, start: Math.round(l.start * 1000) / 1000, end: Math.round(l.end * 1000) / 1000, caption: l.text, voice: l.voice,
+  ...(l.at ? { at: l.at, cover: Math.round((l.cover ?? 0) * 100) / 100 } : {}),
 })), null, 2) + '\n';
 
 export function markdown(lines: ScriptLine[], info: ScriptInfo) {
@@ -55,15 +60,18 @@ export function markdown(lines: ScriptLine[], info: ScriptInfo) {
     'video: re-recording rewrites it. Times are from the start of the video; "Room" is how long the line is',
     'on screen, "Voice" how long it takes spoken. "Spoken" is the text sent to the voice when it differs',
     'from the caption: punctuation for its pauses, words placed so the voice reads them the right way.',
+    '"Over" is where the caption sat (top or bottom, the emptier of the two) and how much of the page\'s own',
+    'content was under its box there, as a share of the box; a card covers the whole frame by design.',
     'The captions, timed, are in the `.vtt` file beside this one; the `.json` has both.',
     '',
-    '| # | Start | Room | Voice | Words | Caption | Spoken |',
-    '| -: | -: | -: | -: | -: | --- | --- |',
+    '| # | Start | Room | Voice | Words | Over | Caption | Spoken |',
+    '| -: | -: | -: | -: | -: | --- | --- | --- |',
     ...lines.map((l, i) => {
       const caption = l.kind === 'card' ? `**${cell(l.text)}**` : cell(l.text);
       const spoken = l.voice && l.voice !== l.text ? cell(l.voice) : '';
       const voice = info.spoken[l.voice] ? `${info.spoken[l.voice].toFixed(1)} s` : '';
-      return `| ${i + 1} | ${clock(l.start)} | ${(l.end - l.start).toFixed(1)} s | ${voice} | ${words(l.voice || l.text).length} | ${caption} | ${spoken} |`;
+      const over = l.at ? `${l.at} ${Math.round(Math.min(1, l.cover ?? 0) * 100)}%${(l.cover ?? 0) > 1 ? ' !' : ''}` : '';
+      return `| ${i + 1} | ${clock(l.start)} | ${(l.end - l.start).toFixed(1)} s | ${voice} | ${words(l.voice || l.text).length} | ${over} | ${caption} | ${spoken} |`;
     }),
     '',
   ].join('\n');

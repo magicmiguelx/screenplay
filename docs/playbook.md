@@ -70,6 +70,21 @@ form to work through while you do.
   sixty to ninety seconds a hero film gets (`docs/planning.md`) and why
   the twenty-second film keeps its one-line hook. The length label
   beside the film changes with every re-recording: measure the file.
+- **A caption sits where it covers the least.** A caption at the bottom
+  of the frame sat on the combat board's rows and on the ledger it was
+  describing (the owner of PF1e Campaigner's note, after the series). The
+  overlay now measures what is under the caption's box at the bottom and
+  at the top (a grid of points, each asked what it lands on: the page's
+  text, a control or a picture counts, a bare surface does not) and the
+  driver takes the emptier position, with a tie to the bottom; a line
+  may still ask for `top` or `bottom`. The caption also moves off the
+  element the line then clicks, types into or spotlights. Each line's
+  position and cover go in the script's "Over" column, lines over
+  `coverNote` (default 50%) are listed when the video is saved, and
+  `maxCover` on the driver fails a take on a line over it, named. A
+  screen that is dense top and bottom still gets a caption over content;
+  the cure there is the screen, not the caption: scroll the subject to
+  the middle, or cut to it.
 - **The voice has a speed limit.** The model reads a short, plain
   sentence fast: PF1e Campaigner's series ran at a median 2.97 words a
   second with lines up to 4.4 ("A custom row is a name, and a price" in

@@ -20,6 +20,13 @@ it:
   installed? was the page loaded with `goto`?).
 - The mix prints a warning for a clip that runs more than 50 ms into the
   next line.
+- **Over** is where the caption sat (the emptier of bottom and top) and
+  how much of the page's own content was under its box there. Over about
+  50% the caption is on something; `!` means it would have sat on the
+  element the line acts on and was moved. A high number top and bottom
+  means the screen is dense: scroll the subject to the middle or cut to
+  it, rather than accept the caption over it. `maxCover` on the driver
+  turns the number into a failed take.
 
 ## 2. Frame sheets
 
@@ -69,8 +76,9 @@ second; a second is a viewer noticing.
 
 Nothing above replaces watching the video once at full size, with the
 sound on, as a viewer: the pace, a line that says what the screen already
-shows, a caption that covers what it describes (move it `top: true`), a
-drag that looks like a mistake.
+shows, a caption over what it describes (the Over column says so; the
+driver already took the emptier position, so clear the screen under it),
+a drag that looks like a mistake.
 
 ## 6. What the project's tests can check
 

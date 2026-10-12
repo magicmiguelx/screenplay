@@ -1,7 +1,8 @@
 import type { Locator, Page } from '@playwright/test';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
-import { overlay, type OverlayApi, type OverlayOptions } from './overlay.js';
+import { overlay, type OverlayApi, type OverlayOptions, type Rect } from './overlay.js';
+import { choosePlacement, type Prefer, type Where } from './place.js';
 import { Recorder, VIDEO, type RecorderOptions, type Size } from './recorder.js';
 import { writeScript, type ScriptLine } from './script.js';
 import { clip, clipPath, mix, seconds, speakable, voiceAvailable } from './voice.js';
@@ -12,7 +13,10 @@ import { clip, clipPath, mix, seconds, speakable, voiceAvailable } from './voice
 // placed in the video by the recorder's frames.
 
 /** A line of the voice-over script while it is being recorded: its wall-clock span, placed on the frames at save(). */
-interface Line { kind: 'card' | 'caption'; text: string; voice: string; from: number; to?: number }
+interface Line { kind: 'card' | 'caption'; text: string; voice: string; from: number; to?: number; at?: Where; cover?: number }
+
+/** Where a line asks its caption to sit; neither flag: the emptier position. */
+const prefer = (opts: { top?: boolean; bottom?: boolean }): Prefer => (opts.top ? 'top' : opts.bottom ? 'bottom' : 'auto');
 
 /** A breath between one spoken line and the next. */
 const BREATH_MS = 400;
@@ -37,6 +41,15 @@ export interface DemoOptions {
   /** The page's layout size: the cursor's coordinates are the page's. Default VIDEO. */
   layout?: Size;
   /**
+   * The most of the page's own content a caption may sit over, as a share
+   * of its box (0 to 1), at the emptier of its two positions. A line over
+   * it fails the take, named, so it can be moved or the screen cleared
+   * under it; unset, the cover is only measured and reported (the script's
+   * "Over" column, and a note in the log over `coverNote`, default 0.5).
+   */
+  maxCover?: number;
+  coverNote?: number;
+  /**
    * How long each spoken line takes (seconds, by its spoken text), kept in
    * this JSON file: the recording waits for it, so the voice has room for
    * every line, and a re-recording without the key keeps the same room.
@@ -60,8 +73,10 @@ export class Demo {
   private readonly voiced: boolean;
   /** When the line on screen will have been spoken (ms, this process's clock). */
   private speechEnd = 0;
-  /** The caption on screen, to put back after a navigation (a new document has a new overlay). */
-  private caption: { text: string; top: boolean } | null = null;
+  /** The caption on screen, to put back after a navigation (a new document has a new overlay) and to keep clear of what a line acts on. */
+  private caption: { text: string; prefer: Prefer; at: Where; box: Rect } | null = null;
+  private readonly maxCover?: number;
+  private readonly coverNote: number;
   readonly layout: Size;
 
   constructor(readonly page: Page, opts: DemoOptions = {}) {
@@ -70,6 +85,8 @@ export class Demo {
     this.x = this.layout.width / 2;
     this.y = this.layout.height / 2;
     this.durationsFile = opts.durationsFile;
+    this.maxCover = opts.maxCover;
+    this.coverNote = opts.coverNote ?? 0.5;
     this.voiced = opts.voiced ?? (voiceAvailable() && process.env.DEMOS_VOICE !== '0');
     if (this.durationsFile) {
       try { this.spoken = JSON.parse(readFileSync(this.durationsFile, 'utf8')); } catch { /* a new file */ }
@@ -138,7 +155,11 @@ export class Demo {
   private logCaption(text: string | null, voice = '') {
     const now = Date.now() / 1000;
     if (this.open) { this.open.to = now; this.open = null; }
-    if (text) { this.open = { kind: 'caption', text, voice, from: now }; this.lines.push(this.open); }
+    if (text) {
+      this.open = { kind: 'caption', text, voice, from: now, ...(this.pendingCover ?? {}) };
+      this.pendingCover = null;
+      this.lines.push(this.open);
+    }
   }
 
   /** Start recording, the cursor parked mid-screen; the first frames are in before anything is shown. */
@@ -159,7 +180,7 @@ export class Demo {
    */
   async restore() {
     await this.ui('cursorTo', this.x, this.y, 0);
-    if (this.caption) await this.ui('caption', this.caption.text, this.caption.top);
+    if (this.caption) await this.showCaption(this.caption.text, this.caption.prefer);
   }
 
   /**
@@ -240,11 +261,11 @@ export class Demo {
    * (docs/writing-for-the-ear.md). While the screencast is paused it is a
    * `note()`: set and logged, left up for the frames drawn next.
    */
-  async say(text: string, opts: { ms?: number; keep?: boolean; top?: boolean; voice?: string } = {}) {
+  async say(text: string, opts: { ms?: number; keep?: boolean; top?: boolean; bottom?: boolean; voice?: string } = {}) {
     await this.waitSpeech();
     const said = await this.voiceOf(text, opts.voice);
     this.logCaption(null);
-    await this.showCaption(text, !!opts.top);
+    await this.showCaption(text, prefer(opts));
     await this.shown();
     this.logCaption(text, said);
     this.spokenNow(said);
@@ -258,11 +279,11 @@ export class Demo {
   }
 
   /** Show a caption while something else happens; the next say() replaces it. */
-  async note(text: string, opts: { top?: boolean; voice?: string } = {}) {
+  async note(text: string, opts: { top?: boolean; bottom?: boolean; voice?: string } = {}) {
     await this.waitSpeech();
     const said = await this.voiceOf(text, opts.voice);
     this.logCaption(null);
-    await this.showCaption(text, !!opts.top);
+    await this.showCaption(text, prefer(opts));
     await this.shown();
     this.logCaption(text, said);
     this.spokenNow(said);
@@ -271,10 +292,45 @@ export class Demo {
   /** Take the caption down, once its line has been spoken. */
   async clearNote() { await this.waitSpeech(); await this.showCaption(null); this.logCaption(null); }
 
-  /** Draw a caption (or take it down, `text` null) and remember it for `restore()`. */
-  private async showCaption(text: string | null, top = false) {
-    this.caption = text ? { text, top } : null;
-    await this.ui('caption', text, top);
+  /**
+   * Draw a caption where it covers the least of the page's own content
+   * (or take it down, `text` null), clear of `avoid` (the element the line
+   * acts on), and remember it for `restore()` and `keepClear()`. The cover
+   * is logged on the line; over `maxCover` the take fails, named.
+   */
+  private async showCaption(text: string | null, prefer: Prefer = 'auto', avoid: Rect | null = null) {
+    if (!text) { this.caption = null; await this.ui('caption', null); return; }
+    const covers = await this.page.evaluate(([t, a]) => {
+      const d = (window as unknown as { __demo?: OverlayApi }).__demo;
+      if (!d) throw new Error('The overlay is not in this document: call Demo.prepare(page) before the first navigation.');
+      return d.measure(t, a);
+    }, [text, avoid] as const);
+    const at = choosePlacement({ bottom: covers.bottom.cover, top: covers.top.cover }, prefer);
+    const cover = covers[at].cover;
+    this.caption = { text, prefer, at, box: covers[at].box };
+    await this.ui('caption', text, at === 'top');
+    this.pendingCover = { at, cover };
+    if (this.maxCover !== undefined && cover > this.maxCover) {
+      throw new Error(`Caption over content: ${Math.round(Math.min(1, cover) * 100)}% of its box at the ${at}${cover > 1 ? ', on the element the line acts on' : ''} (bottom ${Math.round(Math.min(1, covers.bottom.cover) * 100)}%, top ${Math.round(Math.min(1, covers.top.cover) * 100)}%), over ${this.maxCover}: move it, or clear the screen under it: "${text}"`);
+    }
+    if (cover > this.coverNote) console.log(`  caption over ${Math.round(Math.min(1, cover) * 100)}% content at the ${at}${cover > 1 ? ' and on the target' : ''}: ${text}`);
+  }
+  /** The cover measured for the caption being logged next. */
+  private pendingCover: { at: Where; cover: number } | null = null;
+
+  /**
+   * Keep the caption up clear of a box the next action is about: if it
+   * sits over it, it moves to the other position (the line's own choice
+   * of position is kept, the cover is marked so the script shows it).
+   */
+  private async keepClear(box: Rect | null) {
+    const c = this.caption;
+    if (!c || !box) return;
+    const b = c.box;
+    const over = b.x < box.x + box.width && b.x + b.width > box.x && b.y < box.y + box.height && b.y + b.height > box.y;
+    if (!over) return;
+    await this.showCaption(c.text, c.prefer, box);
+    if (this.open && this.pendingCover) { this.open.at = this.pendingCover.at; this.open.cover = this.pendingCover.cover; }
   }
 
   /** A picture (a data: URL or an address the page can load) over the app, or none. */
@@ -283,7 +339,9 @@ export class Demo {
   /** Outline an element (or nothing) to draw the eye to it. */
   async spot(target: Locator | null) {
     if (target) await target.scrollIntoViewIfNeeded();
-    await this.ui('spot', target ? await target.boundingBox() : null);
+    const box = target ? await target.boundingBox() : null;
+    await this.keepClear(box);
+    await this.ui('spot', box);
   }
 
   /** Glide the cursor to a point, then move the real mouse there (hover effects follow the cursor). */
@@ -302,6 +360,7 @@ export class Demo {
     await target.scrollIntoViewIfNeeded();
     const box = await target.boundingBox();
     if (!box) throw new Error(`Not on screen: ${target}`);
+    await this.keepClear(box);
     return [box.x + box.width / 2, box.y + box.height / 2];
   }
 
@@ -473,8 +532,10 @@ export class Demo {
     mkdirSync(dirname(out), { recursive: true });
     const end = Date.now() / 1000;
     await this.rec.save(out);
-    const lines: ScriptLine[] = this.lines.map(l => ({ kind: l.kind, text: l.text, voice: l.voice, start: this.rec.videoTime(l.from), end: this.rec.videoTime(l.to ?? end) }));
+    const lines: ScriptLine[] = this.lines.map(l => ({ kind: l.kind, text: l.text, voice: l.voice, start: this.rec.videoTime(l.from), end: this.rec.videoTime(l.to ?? end), ...(l.at ? { at: l.at, cover: l.cover } : {}) }));
     const length = this.rec.videoTime(end);
+    const busy = lines.filter(l => (l.cover ?? 0) > this.coverNote);
+    if (busy.length) console.log(`${busy.length} caption${busy.length === 1 ? '' : 's'} over more than ${Math.round(this.coverNote * 100)}% content (the script's Over column):\n${busy.map(l => `  ${l.at} ${Math.round(Math.min(1, l.cover ?? 0) * 100)}%${(l.cover ?? 0) > 1 ? ' on the target' : ''}  ${l.text}`).join('\n')}`);
     writeScript(scriptBase, lines, { title: info.title, spec: info.spec, root: info.root ?? process.cwd(), video: resolve(out), length, spoken: this.spoken });
     if (this.durationsFile) {
       let durations: Record<string, number> = {};
