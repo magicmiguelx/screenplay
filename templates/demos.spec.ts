@@ -21,7 +21,9 @@ const ROOT = resolve(import.meta.dirname, '../..');
 const VIDEOS = resolve(ROOT, 'public/guide/video');
 const SCRIPTS = resolve(ROOT, 'docs/demo-scripts');
 test.skip(!process.env.DEMOS, 'Set DEMOS=1 to record public/guide/video');
-test.use({ viewport: VIDEO, colorScheme: 'dark' });
+// A locator that never resolves fails its step in half a minute, with its
+// name in the error, instead of hanging the take for the thirty minutes.
+test.use({ viewport: VIDEO, colorScheme: 'dark', actionTimeout: 30_000 });
 test.describe.configure({ timeout: 1_800_000 });
 configure(config.voice);
 

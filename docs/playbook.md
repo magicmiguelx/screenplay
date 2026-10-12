@@ -220,6 +220,12 @@ form to work through while you do.
   page as it was before recording started. `demo.start()` waits for frames
   from the running stream, then discards them: the video starts with the
   opening card, not two seconds of the editor.
+- **Give actions a timeout, so a missing element fails the take instead
+  of hanging it.** A `spot()` or a click on a locator that never resolves
+  waits for the test's timeout, thirty minutes for a video; the third
+  PF1e Campaigner video sat twenty minutes on a text the page did not
+  have. `actionTimeout: 30_000` in the project's Playwright config makes
+  it a failure in half a minute, with the locator named in the error.
 - **A take that hangs is run again with `DEBUG=pw:api` and a
   `--timeout` cap,** and then with a small diagnostic spec that logs the
   page's console and state every few seconds. The phone tutorial hung
