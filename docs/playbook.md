@@ -168,6 +168,14 @@ form to work through while you do.
 - **The screencast restarts after a navigation.** Coming back from an
   external page can end it; the recorder starts it again on
   `framenavigated`.
+- **A navigation empties the overlay; `restore()` puts it back.** A new
+  document has a new overlay, so after a cut to another page the cursor
+  is at its parked corner and a caption kept across the cut (a `note()`
+  spoken over the page load) is gone from the picture while the script
+  still logs it as up. Call `demo.restore()` after every `open()` in a
+  cut: it puts the cursor back where it was and re-paints the caption
+  that is up. Found in PF1e Campaigner's sixth video, where three kept
+  notes vanished at three cuts; the first two videos had the same gap.
 - **Don't touch the app's source while it records.** The dev server's
   hot reload is a navigation: the page reloads, the scene and its
   handles are gone, and the take dies with a baffling error (the film's

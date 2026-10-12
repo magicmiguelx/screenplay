@@ -60,6 +60,8 @@ export class Demo {
   private readonly voiced: boolean;
   /** When the line on screen will have been spoken (ms, this process's clock). */
   private speechEnd = 0;
+  /** The caption on screen, to put back after a navigation (a new document has a new overlay). */
+  private caption: { text: string; top: boolean } | null = null;
   readonly layout: Size;
 
   constructor(readonly page: Page, opts: DemoOptions = {}) {
@@ -150,8 +152,15 @@ export class Demo {
     this.rec.discard();
   }
 
-  /** Put the cursor back where it was after a navigation (a new document has a new overlay). */
-  async restore() { await this.ui('cursorTo', this.x, this.y, 0); }
+  /**
+   * Put the cursor, and the caption still up, back after a navigation: a
+   * new document has a new, empty overlay, so a note kept across a cut
+   * would be in the script yet out of the picture.
+   */
+  async restore() {
+    await this.ui('cursorTo', this.x, this.y, 0);
+    if (this.caption) await this.ui('caption', this.caption.text, this.caption.top);
+  }
 
   /**
    * The overlay has drawn what was just changed, and its fade is over: the
@@ -177,6 +186,7 @@ export class Demo {
   async card(kicker: string, title: string, sub: string, ms = 4500, voice?: string, opts: { hold?: boolean } = {}) {
     await this.waitSpeech();
     this.logCaption(null);
+    this.caption = null; // the card ends the line; a restore() under it must not bring it back
     const said = await this.voiceOf(cardText(title, sub), voice);
     await this.ui('card', kicker, title, sub);
     await this.shown();
@@ -201,6 +211,7 @@ export class Demo {
   async cardAcross(kicker: string, title: string, sub: string, between: () => Promise<unknown>, ms = 4200, voice?: string) {
     await this.waitSpeech();
     this.logCaption(null);
+    this.caption = null; // the card ends the line; a restore() under it must not bring it back
     const said = await this.voiceOf(cardText(title, sub), voice);
     await this.ui('card', kicker, title, sub);
     await this.shown();
@@ -233,14 +244,14 @@ export class Demo {
     await this.waitSpeech();
     const said = await this.voiceOf(text, opts.voice);
     this.logCaption(null);
-    await this.ui('caption', text, !!opts.top);
+    await this.showCaption(text, !!opts.top);
     await this.shown();
     this.logCaption(text, said);
     this.spokenNow(said);
     if (!opts.keep && !this.rec.paused) {
       await this.wait(opts.ms ?? readMs(text));
       await this.waitSpeech();
-      await this.ui('caption', null);
+      await this.showCaption(null);
       this.logCaption(null);
       await this.wait(250);
     }
@@ -251,14 +262,20 @@ export class Demo {
     await this.waitSpeech();
     const said = await this.voiceOf(text, opts.voice);
     this.logCaption(null);
-    await this.ui('caption', text, !!opts.top);
+    await this.showCaption(text, !!opts.top);
     await this.shown();
     this.logCaption(text, said);
     this.spokenNow(said);
   }
 
   /** Take the caption down, once its line has been spoken. */
-  async clearNote() { await this.waitSpeech(); await this.ui('caption', null); this.logCaption(null); }
+  async clearNote() { await this.waitSpeech(); await this.showCaption(null); this.logCaption(null); }
+
+  /** Draw a caption (or take it down, `text` null) and remember it for `restore()`. */
+  private async showCaption(text: string | null, top = false) {
+    this.caption = text ? { text, top } : null;
+    await this.ui('caption', text, top);
+  }
 
   /** A picture (a data: URL or an address the page can load) over the app, or none. */
   async picture(src: string | null) { await this.ui('picture', src); }
