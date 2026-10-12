@@ -44,10 +44,12 @@ async function main() {
   const dry = args.includes('--dry');
   const at = args.indexOf('--config');
   const configFile = resolve(at >= 0 ? args[at + 1] : 'screenplay.config.mjs');
-  const rest = args.filter((a, i) => a !== '--dry' && a !== '--config' && i !== at + 1);
+  const overAt = args.indexOf('--over');
+  const over = overAt >= 0 ? Number(args[overAt + 1]) : 0.5;
+  const rest = args.filter((a, i) => a !== '--dry' && a !== '--config' && a !== '--over' && i !== at + 1 && i !== overAt + 1);
   const [command, ...names] = rest;
-  if (!['speak', 'mix', 'check'].includes(command)) {
-    console.error('Usage: screenplay-voiceover speak|mix|check [name…] [--dry] [--config file]');
+  if (!['speak', 'mix', 'check', 'cover'].includes(command)) {
+    console.error('Usage: screenplay-voiceover speak|mix|check|cover [name…] [--dry] [--config file] [--over 0.5]');
     process.exit(1);
   }
   if (!existsSync(configFile)) {
@@ -57,7 +59,7 @@ async function main() {
   const cfg = (await import(pathToFileURL(configFile).href)).default as ScreenplayConfig;
   const root = resolve(configFile, '..');
   configure(cfg.voice);
-  if (!dry && !voiceAvailable()) {
+  if (command !== 'cover' && !dry && !voiceAvailable()) {
     console.error('Set ELEVENLABS_API_KEY (or use --dry for stand-in clips).');
     process.exit(1);
   }
@@ -116,6 +118,24 @@ async function main() {
       mix(videoOf(name), clips);
       console.log(`${name}: ${clips.length} lines mixed in.`);
     }
+  }
+
+  // Where every caption sat and what it covered, from the scripts: the lines over `--over` (default 0.5), per video.
+  if (command === 'cover') {
+    let flagged = 0, measured = 0;
+    for (const name of videos) {
+      const jsonFile = join(SCRIPTS, `${name}.json`);
+      if (!existsSync(jsonFile)) continue;
+      const rows = (JSON.parse(readFileSync(jsonFile, 'utf8')) as { caption: string; at?: string; cover?: number }[]).filter(l => l.at);
+      measured += rows.length;
+      const bad = rows.filter(l => (l.cover ?? 0) > over);
+      flagged += bad.length;
+      const worst = rows.reduce((m, l) => Math.max(m, l.cover ?? 0), 0);
+      console.log(`${name}: ${rows.length} captions, worst ${Math.round(Math.min(1, worst) * 100)}%${bad.length ? `, ${bad.length} over ${Math.round(over * 100)}%:` : ''}`);
+      for (const l of bad) console.log(`  ${l.at} ${Math.round(Math.min(1, l.cover ?? 0) * 100)}%${(l.cover ?? 0) > 1 ? ' on the target' : ''}  ${l.caption}`);
+    }
+    console.log(flagged ? `${flagged} of ${measured} captions over ${Math.round(over * 100)}% content.` : `Every caption (${measured}) under ${Math.round(over * 100)}% content.`);
+    if (flagged) process.exit(1);
   }
 
   if (command === 'check') {

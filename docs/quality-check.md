@@ -26,7 +26,10 @@ it:
   element the line acts on and was moved. A high number top and bottom
   means the screen is dense: scroll the subject to the middle or cut to
   it, rather than accept the caption over it. `maxCover` on the driver
-  turns the number into a failed take.
+  turns the number into a failed take, and `screenplay-voiceover cover`
+  (no voice key needed) reads every script and lists the lines over a
+  level (`--over 0.5`), failing if there are any: the one-command pass
+  over a whole series.
 
 ## 2. Frame sheets
 
