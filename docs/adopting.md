@@ -79,6 +79,16 @@ later kit change can be ported.
 - Anything the videos must never show (a real key, a real email) is
   mocked; the fixtures use obviously fake values.
 
+## The voice's pace
+
+`voice.maxWordsPerSecond` in `screenplay.config.js` (default 3) is the
+fastest a line may be spoken. The kit measures every clip as it is made
+and remakes a faster one at a lower voice speed (`voice.settings.speed`
+is where it starts, default 1); a line that is still too fast at the
+slowest speed fails the take with the line named. Changing the ceiling
+remakes the clips over it on their next use, which changes their
+lengths: re-record the videos they are in.
+
 ## Documenting it in the project
 
 Put a short section in the project's contributor notes: the commands,

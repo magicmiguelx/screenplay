@@ -106,6 +106,12 @@ heard as "Toggleball's strength"; "Switch on Bull's Strength" was heard
 whole). An acronym said as letters can land as a word too ("D M's" as
 "DMC" and "DM sighed", "C R" as "seer"): say the thing in full.
 
+A line's pace is measured, not guessed: words a second over the clip's
+length, against the project's ceiling (`maxWordsPerSecond`, default 3).
+A short plain sentence is what the voice reads fastest, so a line that
+fails the ceiling at the slowest speed wants a pause ("Six players.
+Forty tabs.") or a word fewer, not a faster caption.
+
 ## 6. Titles
 
 A title card's spoken text is the title and its line joined ("Title. The

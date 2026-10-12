@@ -19,7 +19,7 @@
 
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, renameSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, renameSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
 /** A word the voice says wrongly as written, and what to send instead. */
@@ -32,8 +32,17 @@ export interface VoiceConfig {
   voiceName: string;
   /** The ElevenLabs model. */
   model: string;
-  /** ElevenLabs voice settings. */
-  settings: { stability: number; similarity_boost: number; style: number; use_speaker_boost: boolean };
+  /** ElevenLabs voice settings; `speed` (0.7 to 1.2, default 1) is the starting pace, lowered per line as the ceiling needs. */
+  settings: { stability: number; similarity_boost: number; style: number; use_speaker_boost: boolean; speed?: number };
+  /**
+   * The fastest a line may be spoken, in words a second. A clip faster
+   * than this is made again at a slower voice speed until it fits, and a
+   * line still faster at the slowest speed fails the take, named, so it
+   * is given a pause or fewer words. Default 3 (180 words a minute); the
+   * first series ran at a median 2.97 with lines up to 4.4, and the
+   * fast ones were heard as sped up.
+   */
+  maxWordsPerSecond: number;
   /** Applied to every spoken text, the line's own or the caption's, so scripts can be written plainly. */
   say: SayRule[];
   /** The ffmpeg and ffprobe binaries. */
@@ -49,6 +58,7 @@ export const DEFAULTS: VoiceConfig = {
   model: process.env.ELEVENLABS_MODEL || 'eleven_multilingual_v2',
   // Measured on the first series: a steady read, a little expression, no drift between lines.
   settings: { stability: 0.55, similarity_boost: 0.75, style: 0.1, use_speaker_boost: true },
+  maxWordsPerSecond: 3,
   say: [],
   ffmpeg: process.env.FFMPEG ?? 'ffmpeg',
   ffprobe: process.env.FFPROBE ?? 'ffprobe',
@@ -106,6 +116,20 @@ export const clipPath = (spoken: string, dry = false) =>
 /** A media file's length in seconds (ffprobe). */
 export const seconds = (file: string) => Number(execFileSync(config.ffprobe, ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', file]).toString().trim());
 
+/** The words that are said: tokens with a letter or a digit (a bare "..." is a pause, not a word). */
+export const saidWords = (text: string) => words(text).filter(w => /[\p{L}\p{N}]/u.test(w));
+
+/** How fast a clip is spoken: the words of its text a second. */
+export const pace = (file: string, spoken: string) => saidWords(asSent(spoken)).length / Math.max(0.1, seconds(file));
+
+/**
+ * The voice speed to try next for a clip spoken at `p` words a second
+ * with `speed`, to land under `max` with a little margin; ElevenLabs
+ * takes 0.7 to 1.2. Pure, for the test.
+ */
+export const slower = (p: number, max: number, speed: number) =>
+  Math.max(0.7, Math.min(1.2, Math.round(speed * (max / p) * 0.96 * 100) / 100));
+
 async function api(path: string, init: RequestInit & { body?: string } = {}): Promise<Response> {
   for (let attempt = 0; ; attempt++) {
     const res = await fetch(`${config.api}${path}`, { ...init, headers: { 'xi-api-key': key() ?? '', ...(init.body ? { 'Content-Type': 'application/json' } : {}), ...(init.headers as Record<string, string> | undefined) } });
@@ -138,21 +162,41 @@ async function voice(): Promise<string> {
 /** A spoken text's clip, made once and kept in the cache; `dry` makes a quiet tone as long as the line takes at 150 words a minute. */
 export async function clip(spoken: string, { dry = false, log = true } = {}): Promise<string> {
   const file = clipPath(spoken, dry);
-  if (existsSync(file)) return file;
+  const max = config.maxWordsPerSecond;
+  if (existsSync(file)) {
+    if (dry || pace(file, spoken) <= max) return file;
+    // Made before the ceiling, or at a speed since lowered: made again under it.
+    unlinkSync(file);
+  }
   mkdirSync(config.cache, { recursive: true });
   if (dry) {
     const length = Math.max(0.8, words(spoken).length * 0.4);
     execFileSync(config.ffmpeg, ['-y', '-loglevel', 'error', '-f', 'lavfi', '-i', `sine=frequency=330:duration=${length}`, '-af', 'volume=0.05', '-c:a', 'libmp3lame', file]);
     return file;
   }
-  const res = await api(`/v1/text-to-speech/${await voice()}?output_format=mp3_44100_128`, {
-    method: 'POST',
-    body: JSON.stringify({ text: asSent(spoken), model_id: config.model, voice_settings: config.settings }),
-  });
-  writeFileSync(`${file}.part`, Buffer.from(await res.arrayBuffer()));
-  renameSync(`${file}.part`, file);
-  if (log) console.log(`  ${seconds(file).toFixed(1)} s  ${asSent(spoken)}`);
-  return file;
+  // The ceiling: a clip faster than it is made again slower, three times at most;
+  // a line still too fast at the slowest speed fails, named, to be rewritten.
+  let speed = config.settings.speed ?? 1;
+  for (let attempt = 0; ; attempt++) {
+    const res = await api(`/v1/text-to-speech/${await voice()}?output_format=mp3_44100_128`, {
+      method: 'POST',
+      body: JSON.stringify({ text: asSent(spoken), model_id: config.model, voice_settings: { ...config.settings, speed } }),
+    });
+    writeFileSync(`${file}.part`, Buffer.from(await res.arrayBuffer()));
+    renameSync(`${file}.part`, file);
+    const p = pace(file, spoken);
+    if (p <= max) {
+      if (log) console.log(`  ${seconds(file).toFixed(1)} s  ${p.toFixed(1)} w/s${speed !== 1 ? ` at speed ${speed}` : ''}  ${asSent(spoken)}`);
+      return file;
+    }
+    const next = slower(p, max, speed);
+    if (next >= speed || attempt >= 2) {
+      unlinkSync(file);
+      throw new Error(`Spoken too fast: ${p.toFixed(2)} words a second at speed ${speed}, the ceiling is ${max}. Give the line a pause or fewer words: "${asSent(spoken)}"`);
+    }
+    if (log) console.log(`  ${p.toFixed(1)} w/s at speed ${speed}, over ${max}: again at ${next}  ${asSent(spoken)}`);
+    speed = next;
+  }
 }
 
 /** Transcribe a clip with ElevenLabs Scribe: what the voice was heard to say. */

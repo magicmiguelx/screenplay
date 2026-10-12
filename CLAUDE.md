@@ -44,6 +44,12 @@ time by the checklist below, and ticks it as it goes.
      do not run for `setContent()`); the driver throws if it is missing.
    - A user-facing change the videos show re-records them; a recorder
      change re-records all of them.
+   - The voice has a speed limit: a line is spoken at no more than
+     `maxWordsPerSecond` (default 3, 180 words a minute); a faster clip
+     is made again slower, and one still too fast at the slowest speed
+     fails the take, named, to be given a pause or fewer words (the
+     owner's rule, 12 October 2026: the fast lines were heard as sped
+     up).
    - Nothing in the picture is tilted on purpose: no rotated picture
      card, no drawn page at an angle in a hook picture, no transform on
      a still (the owner's rule, 12 October 2026; a one-degree tilt read

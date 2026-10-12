@@ -70,6 +70,17 @@ form to work through while you do.
   sixty to ninety seconds a hero film gets (`docs/planning.md`) and why
   the twenty-second film keeps its one-line hook. The length label
   beside the film changes with every re-recording: measure the file.
+- **The voice has a speed limit.** The model reads a short, plain
+  sentence fast: PF1e Campaigner's series ran at a median 2.97 words a
+  second with lines up to 4.4 ("A custom row is a name, and a price" in
+  two seconds), and the owner heard the fast ones as sped up to fit.
+  Nothing was sped up; that was the delivery. `maxWordsPerSecond`
+  (default 3) is enforced where the clip is made: a faster clip is made
+  again at a lower voice speed (ElevenLabs takes 0.7 to 1.2) until it
+  fits, a cached clip from before the rule is remade on first use, and a
+  line still too fast at the slowest speed fails the take, named, so it
+  gets a pause or fewer words. `voiceover check` prints each video's
+  fastest line against the ceiling.
 - **Nothing is tilted on purpose.** The first films tilted the picture
   card a degree, a photograph dropped on a desk, and the hook pictures
   drew their PDF pages at an angle; at video size, on a screenshot full

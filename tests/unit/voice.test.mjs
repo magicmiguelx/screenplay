@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { asSent, configure, clipPath, normalize, speakable, words } from '../../dist/voice.js';
+import { asSent, configure, clipPath, normalize, saidWords, slower, speakable, words } from '../../dist/voice.js';
 
 test('speakable turns symbols into words', () => {
   assert.equal(speakable('File → Custom node types'), 'File, then Custom node types');
@@ -42,4 +42,20 @@ test('normalize folds number words as a transcript writes them', () => {
   assert.deepEqual(normalize('A hundred and nine thousand builds'), ['109000', 'builds']);
   assert.deepEqual(normalize('109,311 builds, two dollars a month'), ['109311', 'builds', '2', 'dollars', 'a', 'month']);
   assert.deepEqual(normalize('feats, and monsters; one and two'), ['feats', 'and', 'monsters', '1', 'and', '2']);
+});
+
+test('the speed limit: a faster clip is made again slower, within the voice\'s range', () => {
+  // 4.4 words a second at speed 1, ceiling 3: aim just under, 0.65 clamps to 0.7.
+  assert.equal(slower(4.4, 3, 1), 0.7);
+  // 3.3 at speed 1: 0.87.
+  assert.equal(slower(3.3, 3, 1), 0.87);
+  // Already under: no faster than it was (the caller stops when next >= speed).
+  assert.ok(slower(2.8, 3, 1) >= 1);
+  // A second pass from a lowered speed goes lower still.
+  assert.ok(slower(3.2, 3, 0.87) < 0.87);
+});
+
+test('the words that are said leave out a bare pause', () => {
+  assert.deepEqual(saidWords('Describe it... and the assistant drafts the form.'), ['Describe', 'it...', 'and', 'the', 'assistant', 'drafts', 'the', 'form.']);
+  assert.equal(saidWords('Six players. — Forty tabs. ...').length, 4);
 });
