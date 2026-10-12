@@ -65,9 +65,11 @@ form to work through while you do.
   to six words while the voice asks it in full, and the product is named
   over the reveal, not over the problem. A question is a line the viewer
   answers in their head, so it is given its own still and the next one
-  waits for it; two questions and the naming took fifteen seconds, which
-  is the hook's budget in a minute, and why the twenty-second film keeps
-  its one-line hook.
+  waits for it; two questions and the naming took twenty-five seconds
+  and the minute's cut came out at 1:22, which is still inside the
+  sixty to ninety seconds a hero film gets (`docs/planning.md`) and why
+  the twenty-second film keeps its one-line hook. The length label
+  beside the film changes with every re-recording: measure the file.
 - **A video for a phone is a layout, not a new recorder.** The page is
   laid out at the phone's size (`layout`) and drawn at full HD portrait
   (`output` with the device scale factor), the overlay is sized for it
