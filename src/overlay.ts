@@ -70,7 +70,7 @@ export function overlay(opts: OverlayOptions = {}) {
 #demo-overlay .card .brand { position: absolute; bottom: 36px; font-size: .8em; color: #7f8ba0; letter-spacing: .04em; }
 #demo-overlay .picture { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(6, 9, 16, .82); opacity: 0; transition: opacity .4s; z-index: 1; }
 #demo-overlay .picture.on { opacity: 1; }
-#demo-overlay .picture img { max-width: 78%; max-height: 74%; border-radius: 10px; box-shadow: 0 18px 60px rgba(0,0,0,.6); transform: rotate(-1.2deg); }
+#demo-overlay .picture img { max-width: 78%; max-height: 74%; border-radius: 10px; box-shadow: 0 18px 60px rgba(0,0,0,.6); }
 #demo-overlay .spot { position: absolute; border: 3px solid #ffd54a; border-radius: 10px; box-shadow: 0 0 0 4000px rgba(0,0,0,.28); opacity: 0; transition: opacity .3s, left .3s, top .3s, width .3s, height .3s; }
 #demo-overlay .spot.on { opacity: 1; }
 #demo-overlay .beat { position: absolute; left: 0; bottom: 0; width: 2px; height: 2px; background: rgba(255,255,255,.02); animation: demo-beat 1s steps(${beat}, end) infinite; }
