@@ -300,6 +300,7 @@ export class Demo {
    */
   private async showCaption(text: string | null, prefer: Prefer = 'auto', avoid: Rect | null = null) {
     if (!text) { this.caption = null; await this.ui('caption', null); return; }
+    avoid ??= this.spotBox;
     const covers = await this.page.evaluate(([t, a]) => {
       const d = (window as unknown as { __demo?: OverlayApi }).__demo;
       if (!d) throw new Error('The overlay is not in this document: call Demo.prepare(page) before the first navigation.');
@@ -342,7 +343,10 @@ export class Demo {
     const box = target ? await target.boundingBox() : null;
     await this.keepClear(box);
     await this.ui('spot', box);
+    this.spotBox = box;
   }
+  /** The spotlit element while the spotlight is on: a caption placed meanwhile keeps off it. */
+  private spotBox: Rect | null = null;
 
   /** Glide the cursor to a point, then move the real mouse there (hover effects follow the cursor). */
   async moveTo(x: number, y: number, ms?: number) {

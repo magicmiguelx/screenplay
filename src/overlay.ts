@@ -151,10 +151,19 @@ ${opts.css ?? ''}`;
         return n ? hit / n : 0;
       };
       const over = (r: DOMRect) => !!avoid && r.left < avoid.x + avoid.width && r.right > avoid.x && r.top < avoid.y + avoid.height && r.bottom > avoid.y;
+      // Under a picture card the page is dimmed away: what the caption can cover is the picture itself.
+      const picture = $('.picture').classList.contains('on') ? $('.picture img').getBoundingClientRect() : null;
+      const onPicture = (r: DOMRect) => {
+        if (!picture) return 0;
+        const w = Math.max(0, Math.min(r.right, picture.right) - Math.max(r.left, picture.left));
+        const h = Math.max(0, Math.min(r.bottom, picture.bottom) - Math.max(r.top, picture.top));
+        return r.width * r.height ? (w * h) / (r.width * r.height) : 0;
+      };
+      // Under a spotlight the rest of the page is dimmed too: the lit element is what matters, and `avoid` names it.
       const at = (top: boolean) => {
         c.classList.toggle('top', top);
         const r = c.getBoundingClientRect();
-        return { cover: cover(r) + (over(r) ? 1 : 0), box: { x: r.left, y: r.top, width: r.width, height: r.height } };
+        return { cover: (picture ? onPicture(r) : cover(r)) + (over(r) ? 1 : 0), box: { x: r.left, y: r.top, width: r.width, height: r.height } };
       };
       const out = { bottom: at(false), top: at(true) };
       c.classList.toggle('top', was.top);

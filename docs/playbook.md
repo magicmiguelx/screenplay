@@ -77,8 +77,10 @@ form to work through while you do.
   at the top (a grid of points, each asked what it lands on: the page's
   text, a control or a picture counts, a bare surface does not) and the
   driver takes the emptier position, with a tie to the bottom; a line
-  may still ask for `top` or `bottom`. The caption also moves off the
-  element the line then clicks, types into or spotlights. Each line's
+  may still ask for `top` or `bottom`. The caption also keeps off the
+  element the line clicks, types into or spotlights, before or after it
+  is placed; under a picture card only the picture counts, the page
+  being dimmed away beneath it. Each line's
   position and cover go in the script's "Over" column, lines over
   `coverNote` (default 50%) are listed when the video is saved, and
   `maxCover` on the driver fails a take on a line over it, named. A
