@@ -62,18 +62,32 @@ clips overlapping, a clip at the wrong time).
 The measurement that found the drift. For each title card, the moment it
 is first fully in the picture against the moment its line starts:
 
-1. The card's moment: the first frame where the card is up. From a frame
-   sheet at 10 frames a second around the card's expected time
-   (`-ss <start − 2> -t 4 -vf fps=10`), or by scene detection:
-   `ffmpeg -i video.mp4 -vf "select='gt(scene,0.4)',showinfo" -f null -`
-   prints the time of each cut, and a card fading in is one.
+1. The card's moment: the first frame where the card is fully up. From a
+   frame sheet at 10 frames a second around the card's expected time
+   (`-ss <start − 2> -t 4 -vf fps=10`), or from the frames' differences:
+   `signalstats` gives each frame's mean luminance difference from the one
+   before (`YDIF`), a fade is a run of frames over 0.8, and the card is in
+   when the run ends. Scene detection (`select='gt(scene,0.4)'`) misses
+   it: no single frame of a half-second fade is a cut, and on a heavy
+   scene the fade is one frame anyway. `templates/check-cards.mjs` does
+   this for every video with a script and prints both ends against the
+   lines (`node check-cards.mjs docs/demo-scripts public/guide/video
+   public/promo`); a value in scientific notation (`6.7e-05`, the
+   heartbeat dot) is read as a number, not cut at the `e`.
 2. The voice's moment: the line's `start` in the `.json`, or, from the
    audio, the first non-silent moment after the previous line
    (`ffmpeg -i audio.mp3 -af silencedetect=n=-35dB:d=0.3 -f null -`).
 
 Check the first card and the last of every video: the drift grew along the
 video, so the ends show it first. The target after the fix was half a
-second; a second is a viewer noticing.
+second; a second is a viewer noticing. Measured on Plenoview's thirty
+videos (12 October 2026, after the heartbeat and `painted()` changes of
+that day): the voice starts between 0.31 s before and 0.42 s after its
+card, except three closing cards at 0.51 to 0.62 s after. The "before"
+is the screencast on a heavy scene: a frame shows the page as it was
+when it began, and at seven frames a second that is up to 0.15 s before
+its timestamp; the "after" is the two frames `painted()` waits for, at
+whatever rate a slow scene sends them.
 
 ## 5. Watch the one you changed
 

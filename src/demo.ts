@@ -192,7 +192,7 @@ export class Demo {
    */
   private async shown() {
     if (this.rec.paused) { await this.wait(FADE_MS); return; }
-    await this.rec.painted(Date.now() / 1000 + FADE);
+    await this.rec.painted(Date.now() / 1000, FADE);
   }
 
   /**

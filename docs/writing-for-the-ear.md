@@ -32,6 +32,18 @@ Two sentences beat a semicolon. "Today... and the Target: where the plan
 says it should be." lands; the caption's "Today, and the Target." reads
 fine but is flat aloud.
 
+A written pause is heard, but it does not buy time against the speed
+limit (section 5). Measured on 12 October 2026: "One step at a time,
+with a caption for every step." took 4.2 s plain, 3.8 s with
+`<break time="1.0s" />` after the comma and 3.9 s with "..." there; the
+model's take of a line varies by a tenth from clip to clip, and the
+pause came out of the words around it. A line that fails the ceiling at
+the slowest speed wants fewer words, or a word with more syllables in
+place of a short one: "the story you tell with the diagram" passed
+(2.86 words a second) where "with it" failed at the slowest speed with
+or without a pause (3.05, 3.15), and "say, in a few words, what it
+should cover" passed where "say what it should cover" ran at 3.5.
+
 ## 3. Symbols become words (`speakable`)
 
 | Written | Spoken |
@@ -109,8 +121,11 @@ whole). An acronym said as letters can land as a word too ("D M's" as
 A line's pace is measured, not guessed: words a second over the clip's
 length, against the project's ceiling (`maxWordsPerSecond`, default 3).
 A short plain sentence is what the voice reads fastest, so a line that
-fails the ceiling at the slowest speed wants a pause ("Six players.
-Forty tabs.") or a word fewer, not a faster caption.
+fails the ceiling at the slowest speed wants a word fewer, or a longer
+word for a short one (section 2: a written pause does not lengthen the
+clip), not a faster caption. Of Plenoview's 293 lines, 288 fitted under
+the ceiling as written (the slower speeds did it), and five needed
+rewriting, each by a word or two.
 
 ## 6. Titles
 

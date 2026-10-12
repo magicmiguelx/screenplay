@@ -45,8 +45,9 @@ picture if the last clip is longer still.
 
 Showing a caption is a CSS fade (0.3 s; a title card 0.45 s). The line is
 logged, and its clip placed, when it is in the picture, not when the
-overlay was told: `painted(now + FADE)` resolves once two frames timed at
-or after `now + FADE` have arrived.
+overlay was told: `painted(now, FADE)` resolves once two frames timed at
+or after `first + FADE` have arrived, where `first` is the first frame
+timed at or after `now`.
 
 - One frame is not enough: a frame shows the page as it was when the
   frame *began*, which on a software renderer over a heavy scene is most
@@ -55,10 +56,17 @@ or after `now + FADE` have arrived.
   have missed is in it.
 - `FADE` is 1.0 s: the fade plus the half second a drawn frame was
   measured to lag the page.
-- After 4 s without those frames it resolves anyway (the page is still and
-  the heartbeat is off, or the screencast is paused). With the overlay's
-  heartbeat on, a still page still sends frames and the wait is the
-  margin only.
+- The fade is counted from the first frame after the change, not from
+  the change: a page that cannot paint for a while (a table view busy
+  behind a card, five seconds in a Plenoview take) begins the fade only
+  when it paints again, and counted from the change, the first two
+  frames after the block showed the fade's first instant and the line
+  was logged half a second before the card.
+- After 12 s without those frames it resolves anyway (the screencast is
+  paused, or the page cannot paint at all). With the overlay's heartbeat
+  on (a timer-stepped dot, so it beats only when the page can paint), a
+  still page sends frames and the wait is the margin only; no frames
+  means the page is busy, which is why the limit is long.
 
 ## The room a line has
 

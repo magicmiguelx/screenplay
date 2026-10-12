@@ -29,8 +29,15 @@ export interface OverlayOptions {
    * corner this many times a second, so the screencast keeps sending
    * frames while the page is still. A page that draws nothing between
    * actions (no animation, no 3D scene) sends no frames, and the recorder
-   * could not tell when a caption was in the picture. Default 12; 0 turns
-   * it off (an app whose scene renders continuously does not need it).
+   * could not tell when a caption was in the picture. Stepped from a
+   * timer, not a CSS animation: the compositor runs an animation while the
+   * main thread is busy, and the frames it sent then were stale (a caption
+   * lingered five seconds past its line in a Plenoview take); a timer only
+   * fires when the page can paint, so a frame timed after a change shows
+   * it. The dot sits above the card, or a card hides it and the frames
+   * stop. Default 12; 0 turns it off, though an app whose scene renders
+   * continuously still goes still in some states (a table view, a card
+   * over it), so leave it on unless measured.
    */
   heartbeat?: number;
 }
@@ -84,8 +91,7 @@ export function overlay(opts: OverlayOptions = {}) {
 #demo-overlay .picture img { max-width: 78%; max-height: 74%; border-radius: 10px; box-shadow: 0 18px 60px rgba(0,0,0,.6); }
 #demo-overlay .spot { position: absolute; border: 3px solid #ffd54a; border-radius: 10px; box-shadow: 0 0 0 4000px rgba(0,0,0,.28); opacity: 0; transition: opacity .3s, left .3s, top .3s, width .3s, height .3s; }
 #demo-overlay .spot.on { opacity: 1; }
-#demo-overlay .beat { position: absolute; left: 0; bottom: 0; width: 2px; height: 2px; background: rgba(255,255,255,.02); animation: demo-beat 1s steps(${beat}, end) infinite; }
-@keyframes demo-beat { from { transform: translateX(0); } to { transform: translateX(${beat}px); } }
+#demo-overlay .beat { position: absolute; left: 0; bottom: 0; width: 2px; height: 2px; background: rgba(255,255,255,.02); z-index: 6; }
 ${opts.css ?? ''}`;
   const text = (s: string) => s.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]!);
   const install = () => {
@@ -105,6 +111,11 @@ ${opts.css ?? ''}`;
       <div class="ring"></div>
       <svg class="cursor" viewBox="0 0 26 26"><path d="M3 2 L3 21 L8.2 16.4 L11.6 24 L15 22.5 L11.7 15 L19 15 Z" fill="#fff" stroke="#111" stroke-width="1.6" stroke-linejoin="round"/></svg>`;
     document.body.appendChild(root);
+    if (beat) {
+      const dot = root.querySelector('.beat') as HTMLElement;
+      let step = 0;
+      setInterval(() => { dot.style.transform = `translateX(${step++ % beat}px)`; }, 1000 / beat);
+    }
   };
   const $ = (sel: string) => { install(); return document.querySelector(`#demo-overlay ${sel}`) as HTMLElement; };
   w.__demo = {

@@ -134,20 +134,34 @@ export class Recorder {
 
   /**
    * Resolves once the browser has drawn two frames timed at or after `wall`
-   * (seconds, Date.now() / 1000), so what the page looked like then is in the
+   * (seconds, Date.now() / 1000) plus `fade` (counted from the first frame
+   * timed after `wall`), so what the page looked like then is in the
    * picture: a software renderer can take a second over a heavy scene, a
    * frame shows the page as it was when the frame began, up to a frame
    * earlier than its timestamp, and a fade is only in the picture once a
    * frame begun after it ends is drawn. After `ms` without them, resolves
-   * anyway (a still page, or paused).
+   * anyway (paused, or a page that cannot paint). With the heartbeat the
+   * page sends frames whenever it can paint, so no frames means it is busy
+   * and the wait is long: a closing card over a table view waited five
+   * seconds for its paint, and a four-second limit logged its line a
+   * second before the card was in the picture (Plenoview, 12 October 2026).
    */
-  painted(wall: number, ms = 4000): Promise<void> {
+  painted(wall: number, fade = 0, ms = 12000): Promise<void> {
     if (!this.recording) return Promise.resolve();
     return new Promise(resolve => {
       const timer = setTimeout(() => { this.painters = this.painters.filter(p => p !== done); resolve(); }, ms);
+      // The fade is counted from the first frame timed after the change, not from the change itself: when
+      // the page could not paint for a while, the fade only began with that frame (a closing card's line
+      // was logged on two frames that showed the fade's first instant, half a second before the card).
+      let due: number | null = fade ? null : wall;
       let after = 0;
       const done = (frame: Frame) => {
-        if (frame.wall >= wall) after++;
+        if (due === null) {
+          if (frame.wall >= wall) due = Math.max(wall, frame.wall) + fade;
+          this.painters.push(done);
+          return;
+        }
+        if (frame.wall >= due) after++;
         if (after < 2) { this.painters.push(done); return; }
         clearTimeout(timer);
         resolve();
@@ -155,6 +169,7 @@ export class Recorder {
       this.painters.push(done);
     });
   }
+
 
   /**
    * A frame drawn by hand, shown for `duration` seconds, while the screencast

@@ -37,7 +37,14 @@ form to work through while you do.
   (an orbit, five systems added the same way). The remake gave each its
   line ("Search, click, name, and drag. The dbt models go in Process…").
   The pauses that remain are where the screen is busy (sliders, drags,
-  typing), and those are short.
+  typing), and those are short. A second look at a finished series (the
+  script tables' Room against Voice) still found silences of nine to
+  seventeen seconds, each with one cause: a mocked answer waited for in
+  full (a roadmap's plan and three phases at three seconds each; cut
+  after the first second), a goal typed twice (the second time off
+  camera), the app's own recorder making the page crawl (cut to its red
+  note), and one line over six clicks (split where the picture
+  changes).
 - **No teasers for what has its own video.** When a feature got a video
   of its own, the mentions of it in earlier videos came out.
 - **Claim only what is measured.** The sales video makes AI a supporting
@@ -96,8 +103,12 @@ form to work through while you do.
   again at a lower voice speed (ElevenLabs takes 0.7 to 1.2) until it
   fits, a cached clip from before the rule is remade on first use, and a
   line still too fast at the slowest speed fails the take, named, so it
-  gets a pause or fewer words. `voiceover check` prints each video's
-  fastest line against the ceiling.
+  gets fewer words (a written pause does not buy time: measured in
+  `docs/writing-for-the-ear.md`, section 2). `voiceover check` prints
+  each video's fastest line against the ceiling. Run `voiceover speak`
+  before re-recording a series under a new ceiling: it lists every line
+  that cannot fit at once (five of Plenoview's 293), so the rewrites are
+  made before the first take, not one failed take at a time.
 - **Nothing is tilted on purpose.** The first films tilted the picture
   card a degree, a photograph dropped on a desk, and the hook pictures
   drew their PDF pages at an angle; at video size, on a screenshot full
@@ -163,8 +174,22 @@ form to work through while you do.
   plain page does not, and the screencast only sends what changed. The
   overlay keeps a heartbeat (an invisible 2-pixel dot stepped 12 times a
   second), so frames keep coming and the recorder can tell when a caption
-  is in the picture. An app whose scene renders continuously can turn it
-  off.
+  is in the picture. Leave it on even for an app whose scene renders
+  continuously: Plenoview's copy of the recorder predated the heartbeat
+  and did without it, until the keyboard tutorial ended on the table
+  view, where nothing draws; no frames came, `painted()` gave up after
+  its four seconds, and the closing card's voice landed 1.3 s before the
+  card (found by `templates/check-cards.mjs`, 12 October 2026). Three
+  things about it were paid for the same day. The dot is stepped by a
+  timer, not a CSS animation: the compositor runs an animation while the
+  main thread is busy, and the frames it sent then were stale (a caption
+  lingered five seconds past its line). It sits above the card (a
+  z-index), or a card hides it and the frames stop. And with it on, no
+  frames means the page cannot paint, so `painted()` waits twelve
+  seconds rather than four, and counts the fade from the first frame
+  timed after the change rather than from the change: a page that could
+  not paint for five seconds began the card's fade only then, and the
+  first two frames after it showed the fade's first instant.
 - **The layout is one size.** 1440 × 810 (16:9, wide enough that both side
   panels stay pinned). Full HD is the same layout drawn at a higher device
   scale factor (1920 / 1440), so every coordinate in every spec stays
@@ -218,6 +243,16 @@ form to work through while you do.
   strings; the failure screenshot showed the default diagram, which was
   the clue). Edit the docs, not the app, while a recording runs, or
   record from a second checkout.
+- **Vite's dependency optimizer is a reload too.** The first time a lazy
+  chunk pulls in a package the dev server has not pre-bundled, Vite
+  optimizes it and reloads the page: Plenoview's tour-video export
+  imported `mp4-muxer` three minutes into a take, the page came back as
+  the default diagram, and the take died waiting for a download that
+  never came (the optimizer's cache file carried the exact second). A
+  fresh clone has no optimizer cache, so every lazily imported package
+  (`grep -rhoE "import\('[^'.][^']*'\)" src`, and what those modules
+  import) goes in the config's `optimizeDeps.include`, or the specs that
+  load every chunk are run once before the first take.
 - **The dev server's own chrome is in every frame.** Next's dev-tools
   button sat in the corner of the first PF1e Campaigner take. Hide it
   in the project's init script (a style for `nextjs-portal`), not in
