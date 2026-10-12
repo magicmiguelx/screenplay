@@ -16,6 +16,7 @@ prove, read in this order:
 | --- | --- |
 | README, user guide, help pages | The features as the maker names them, in the order they are taught: the tutorials' order is usually already there. |
 | Site copy, landing page, `<meta>` descriptions | The audience, the promise, the product's own words. A promo claims nothing these do not, and nothing the product has not measured. |
+| The legal pages, the billing page, the retention rule | What the offer card may promise. PF1e Campaigner's sales card said "your characters are never deleted" while its privacy policy purges dormant accounts, and its player card said "on any device" while its own roadmap left the phone layout unchecked: the card says what the billing page says (downloads, cancel any time). |
 | Roadmap, changelog | What is built, half built, next. A feature about to change is a re-recording: later in the roadmap, or left out. |
 | The e2e tests | Every feature with a passing test can be shown, and its test is the spec's skeleton: selectors, fixtures, mocks. No test, no video (a risk item, not a video item). |
 | UI strings (i18n, menu labels) | The words the cards must use; titles that read badly aloud (a spoken form); brand words and acronyms for the `say` rules. |

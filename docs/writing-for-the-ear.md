@@ -99,6 +99,13 @@ confirmed the clip says it right), and a web address said as "dot com"
 and written "plenoview.com" (the dot goes with the punctuation). Add such
 spellings to `undo` once they are known.
 
+Two more kinds, from PF1e Campaigner's promos: a price is written as a
+figure ("$2 a month" for "two dollars a month", an `undo` rule), and two
+short words can run together in the voice ("Toggle Bull's Strength" was
+heard as "Toggleball's strength"; "Switch on Bull's Strength" was heard
+whole). An acronym said as letters can land as a word too ("D M's" as
+"DMC" and "DM sighed", "C R" as "seer"): say the thing in full.
+
 ## 6. Titles
 
 A title card's spoken text is the title and its line joined ("Title. The

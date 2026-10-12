@@ -201,7 +201,15 @@ form to work through while you do.
   arrived after a night of them: the off-camera import stayed on its
   page and the take died in its seeding. A test database is a
   throwaway: reset it before each take, and fail loudly on a seeding
-  step that does not land where it should.
+  step that does not land where it should. Reset the user-scoped tables
+  too, not only what the seeded rows hang off: the homebrew video's
+  feats list showed its feat twice, one from the take before.
+- **Cut a slow action on the dev server.** A server action that
+  re-renders the page can take fifteen seconds on a development server
+  (the campaign-trait create in PF1e Campaigner), and the recorder holds
+  the still before a cut for as long as it was on screen: the hold was
+  inside the click. Hover the button on camera, pause, click, wait for
+  the row, resume.
 - **Sign in by what the tenant allows.** A social-only Clerk instance
   answers "Identifier is invalid" to any password sign-in; a sign-in
   token minted with the secret key and redeemed as a ticket works on any
