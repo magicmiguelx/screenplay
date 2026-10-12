@@ -353,7 +353,10 @@ The full rules and the measurements are in
   every clip (ElevenLabs Scribe) and lists the words not heard as written.
   Its own spellings ("life cycle", "dialogue", "plano view") are not
   errors; a brand it writes wrongly however it is spelled is noted and
-  left.
+  left. A short line heard as a sound tag ("[outro jingle]") on a clip
+  that measures loud is the transcriber's whim, not a missing line: run
+  the check again before re-recording (PF1e Campaigner's fourth video,
+  once in six runs).
 
 ## 5. Checking a recording
 
