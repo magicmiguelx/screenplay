@@ -87,12 +87,26 @@ async function main() {
 
   if (command === 'speak') {
     const durations: Record<string, number> = existsSync(DURATIONS) ? JSON.parse(readFileSync(DURATIONS, 'utf8')) : {};
+    // A line the ceiling cannot fit is listed, not fatal here: the rest are made, and all the rewrites come at once.
+    const tooFast: string[] = [];
     for (const name of videos) {
       console.log(name);
-      for (const line of lines(name)) durations[line.voice] = Math.round(seconds(await clip(line.voice, { dry })) * 100) / 100;
+      for (const line of lines(name)) {
+        try {
+          durations[line.voice] = Math.round(seconds(await clip(line.voice, { dry })) * 100) / 100;
+        } catch (e) {
+          if (!(e instanceof Error) || !e.message.startsWith('Spoken too fast')) throw e;
+          tooFast.push(`${name}: ${e.message}`);
+          console.log(`  ${e.message}`);
+        }
+      }
     }
     writeFileSync(DURATIONS, JSON.stringify(Object.fromEntries(Object.entries(durations).sort(([a], [b]) => a.localeCompare(b))), null, 2) + '\n');
     console.log(`Wrote ${DURATIONS}: re-record so each line has room, then mix.`);
+    if (tooFast.length) {
+      console.log(`${tooFast.length} lines the ceiling cannot fit; give each a pause or fewer words:\n${tooFast.join('\n')}`);
+      process.exit(1);
+    }
   }
 
   if (command === 'mix') {
