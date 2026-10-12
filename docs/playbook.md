@@ -188,6 +188,12 @@ form to work through while you do.
   feat opened under an "unfinished build" banner and an advisor popover
   over the picture; the fighter would have shown four more. Assess every
   fixture with the app's own completeness check before it is recorded.
+- **A quota fills with takes.** Every take seeds what it needs, and
+  the account's limit (ten characters a player, in PF1e Campaigner)
+  arrived after a night of them: the off-camera import stayed on its
+  page and the take died in its seeding. A test database is a
+  throwaway: reset it before each take, and fail loudly on a seeding
+  step that does not land where it should.
 - **Sign in by what the tenant allows.** A social-only Clerk instance
   answers "Identifier is invalid" to any password sign-in; a sign-in
   token minted with the secret key and redeemed as a ticket works on any
