@@ -42,3 +42,4 @@ draw nothing between actions.
 The numbers from the series, for scale: eighteen tutorials, 38 minutes,
 236 spoken lines, recorded in about an hour and a half end to end with
 the voice; the sales video two minutes. Lengths ran from 1:11 to 3:06.
+| 2026-10-13 | "Run the combats, live." heard as the verb | The comma made "live" a command (liv); without it the adverb (lyve). A reading a transcript cannot tell apart is measured on the vowel: `templates/vowel-formants.py` (Praat formant tracks at Scribe's word timing) against a clip whose reading is certain. |

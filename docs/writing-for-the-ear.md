@@ -69,7 +69,20 @@ the word is written. "pre-ZENT", "preSENT" and "pre-sent" moved nothing
 timings); it takes no SSML phoneme tags. What works is the sentence: a
 verb before an object. "Present the tour", "Present it full screen".
 The same applies to any word with two readings (record, object, project,
-export as a noun): make the grammar decide.
+export as a noun): make the grammar decide. Punctuation is part of the
+grammar: "Run the combats, live." was read as the verb (liv), the comma
+having cut "live" loose as a command; "Run the combats live." is the
+adverb (lyve), and so are "Run the fight live, on every screen" and
+"Then run it live" (2026-10-13).
+
+A transcript cannot tell two readings apart ("live" is "live" either
+way), and neither can the word's length from Scribe's timings (0.18 s
+and 0.20 s). The vowel can: `templates/vowel-formants.py` tracks the
+first two formants through the word with Praat and prints them beside a
+clip whose reading is certain ("Live combat", "I live here"). The
+diphthong of "lyve" starts with F1 high and falling and F2 rising; the
+short vowel of "liv" holds F1 low and F2 high. That is how the comma was
+found, without ears.
 
 What did work as respelling, for words the model does not know:
 
