@@ -55,9 +55,9 @@ export interface OverlayApi {
    * The caption's cover at each position: the share of a grid of points
    * under its box that lands on the page's own content (text, controls,
    * pictures), 0 to 1; plus 1 where the box would sit over `avoid` (the
-   * element a line is about). Measures `text` without showing it.
+   * element, or elements, a line is about). Measures `text` without showing it.
    */
-  measure(text: string, avoid?: Rect | null): { bottom: Placement; top: Placement };
+  measure(text: string, avoid?: Rect | Rect[] | null): { bottom: Placement; top: Placement };
   card(kicker: string | null, title?: string, sub?: string): void;
   picture(src: string | null): void;
   spot(rect: { x: number; y: number; width: number; height: number } | null): void;
@@ -161,7 +161,8 @@ ${opts.css ?? ''}`;
         }
         return n ? hit / n : 0;
       };
-      const over = (r: DOMRect) => !!avoid && r.left < avoid.x + avoid.width && r.right > avoid.x && r.top < avoid.y + avoid.height && r.bottom > avoid.y;
+      const avoids = avoid ? (Array.isArray(avoid) ? avoid : [avoid]) : [];
+      const over = (r: DOMRect) => avoids.some(a => r.left < a.x + a.width && r.right > a.x && r.top < a.y + a.height && r.bottom > a.y);
       // Under a picture card the page is dimmed away: what the caption can cover is the picture itself.
       const picture = $('.picture').classList.contains('on') ? $('.picture img').getBoundingClientRect() : null;
       const onPicture = (r: DOMRect) => {

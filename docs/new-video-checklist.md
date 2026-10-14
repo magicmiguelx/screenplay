@@ -37,6 +37,11 @@ does not). Work down it; every line is a rule from `docs/playbook.md`.
 - [ ] Captions `top: true` where the bottom of the screen is what they
       describe; `spot()` on the element a line is about, and `spot(null)`
       after.
+- [ ] Every line's subject is in the picture while it is said: named with
+      `about` (it is scrolled into view first), or the action done first
+      and the line said over its result. Never a line said in full and
+      then a click on something below the fold. `minInView` set on the
+      driver, so a line that misses fails the take.
 - [ ] A `poster()` at the video's best still.
 - [ ] Closing card with `hold: true`: "Next: …" naming the next video, or
       the series' end.
@@ -53,7 +58,8 @@ does not). Work down it; every line is a rule from `docs/playbook.md`.
 - [ ] `screenplay-voiceover check <name>`: listen to every line it lists;
       reword, add a `say` rule, or accept a transcriber's spelling.
 - [ ] Read the script table (`.md`): no Room shorter than Voice, no long
-      silence, starts above 0:00.0. `docs/quality-check.md`.
+      silence, starts above 0:00.0, no Seen under 90%.
+      `docs/quality-check.md`.
 - [ ] Watch it once at full size with the sound on.
 - [ ] Put the real length on its card (from `demo.save()`'s return, or
       ffprobe).

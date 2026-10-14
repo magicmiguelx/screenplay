@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { cardLength, clock, markdown, vtt, vttTime } from '../../dist/script.js';
+import { cardLength, clock, json, markdown, vtt, vttTime } from '../../dist/script.js';
 
 const lines = [
   { kind: 'card', text: 'What is it? The idea in a minute.', voice: 'What is it? The idea, in a minute.', start: 1.1, end: 8.6 },
@@ -26,13 +26,22 @@ test('the markdown table escapes pipes and shows the spoken text only when it di
   const md = markdown(lines, { title: 'Test', video: '/p/out/v.mp4', spec: 'tests/x.spec.ts', root: '/p', length: 19.0, spoken: { 'What is it? The idea, in a minute.': 6.2 } });
   assert.ok(md.startsWith('# Test: voice-over script'));
   assert.ok(md.includes('`out/v.mp4` (0:19.0)'));
-  assert.ok(md.includes('| 1 | 0:01.1 | 7.5 s | 6.2 s | 8 |  | **What is it? The idea in a minute.** | What is it? The idea, in a minute. |'));
+  assert.ok(md.includes('| 1 | 0:01.1 | 7.5 s | 6.2 s | 8 |  |  | **What is it? The idea in a minute.** | What is it? The idea, in a minute. |'));
   assert.ok(md.includes('Press ? \\| for help'));
 });
 
 test('the Over column shows where a caption sat and what it covered', () => {
   const md = markdown([{ kind: 'caption', text: 'Open it.', voice: 'Open it.', start: 1, end: 3, at: 'top', cover: 0.12 }], { title: 'T', video: '/p/v.mp4', spec: 's', root: '/p', length: 3, spoken: {} });
-  assert.ok(md.includes('| top 12% | Open it. |'));
+  assert.ok(md.includes('| top 12% |  | Open it. |'));
   const over = markdown([{ kind: 'caption', text: 'Click.', voice: 'Click.', start: 1, end: 3, at: 'bottom', cover: 1.4 }], { title: 'T', video: '/p/v.mp4', spec: 's', root: '/p', length: 3, spoken: {} });
-  assert.ok(over.includes('| bottom 100% ! | Click. |'));
+  assert.ok(over.includes('| bottom 100% ! |  | Click. |'));
+});
+
+test('the Seen column shows how much of the line\'s subject was in the picture', () => {
+  const l = { kind: 'caption', text: 'The ledger.', voice: 'The ledger.', start: 1, end: 3, at: 'top', cover: 0, seen: 0.42, subject: "acted on next: locator('ul')" };
+  const md = markdown([l], { title: 'T', video: '/p/v.mp4', spec: 's', root: '/p', length: 3, spoken: {} });
+  assert.ok(md.includes('| top 0% | 42% | The ledger. |'));
+  const out = JSON.parse(json([l]));
+  assert.equal(out[0].seen, 0.42);
+  assert.equal(out[0].subject, "acted on next: locator('ul')");
 });

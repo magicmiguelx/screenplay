@@ -99,6 +99,20 @@ phone layout wants `top`). The script's "Over" column records each
 line's position and cover; `new Demo(page, { maxCover: 0.6 })` fails a
 take on a line over it, `coverNote` sets the level the log lists.
 
+## What a line is about is in the picture
+
+Also nothing to configure for the measuring: every line's subject is
+measured in the picture while it is up (the elements it names with
+`say(text, { about: locator })`, the spotlit element, and the element its
+first action works on, before the action scrolls to it) and written to
+the script's "Seen" column. `new Demo(page, { minInView: 0.9 })` fails a
+take on a line whose subject is less in view than that; `inViewNote`
+(default 0.95) sets the level the log lists. A line named with `about`
+has its subject brought into the picture before it is said; `about:
+false` marks a line about nothing on the page. For a second page shown
+as a picture card, `bringIntoView(locator)` and `inView(locator)` work on
+any page.
+
 ## Documenting it in the project
 
 Put a short section in the project's contributor notes: the commands,

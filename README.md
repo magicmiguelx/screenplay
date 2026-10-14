@@ -51,6 +51,7 @@ DEMOS=1 npx playwright test demos -g " 7 · "      # record one video (no key: c
 ELEVENLABS_API_KEY=… DEMOS=1 npx playwright test demos -g " 7 · "   # voiced as it records, the clips mixed in
 npx screenplay-voiceover check 07               # every clip transcribed and compared with what it should say
 npx screenplay-voiceover cover                  # every caption's place and cover, the lines over 50% listed (no key needed)
+npx screenplay-voiceover seen                   # how much of each line's subject was in the picture, the lines under 90% listed (no key needed)
 ```
 
 A new project, from nothing: `/plan-videos <path to the app>` surveys it and
