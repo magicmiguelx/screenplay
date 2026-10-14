@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { Demo, VIDEO, configure } from '../src/index.js';
+import { Demo, VIDEO, configure, inView } from '../src/index.js';
 
 // Records a short video of a small page, no voice (no key needed): the
 // recorder, the overlay, the driver, the script files and ffmpeg all work
@@ -117,4 +117,39 @@ test('a small page, recorded with captions, a card and the script files', async 
   expect(json[0].voice).toBe('A counter. Two buttons, a field and a slider, driven on camera.');
   // The lines are in order and never overlap.
   for (let i = 1; i < lines.length; i++) expect(lines[i].start).toBeGreaterThanOrEqual(lines[i - 1].end - 0.01);
+});
+
+const TALL_PAGE = `<!doctype html><html><head><style>
+  body { margin: 0; font: 18px system-ui; background: #10141c; color: #eee; }
+  header { position: sticky; top: 0; height: 64px; background: #1b2230; z-index: 5; display: flex; align-items: center; padding: 0 28px; }
+  section { margin: 24px 28px; padding: 16px; border: 1px solid #3a4a66; border-radius: 8px; }
+  #tall { height: 2000px; }
+  button { font: inherit; padding: 8px 16px; }
+</style></head><body>
+  <header><strong>A long page</strong></header>
+  <section style="height: 900px">The top of the page.</section>
+  <section id="below">A box below the fold.</section>
+  <section id="tall">A section taller than the frame.</section>
+  <section><button id="far">Far below</button></section>
+</body></html>`;
+
+test('what a line is about is in the picture, or the take fails', async ({ page }) => {
+  await Demo.prepare(page);
+  await page.route('https://smoke.test/**', r => r.fulfill({ status: 200, contentType: 'text/html', body: TALL_PAGE }));
+  await page.goto('https://smoke.test/long');
+  const demo = new Demo(page, { voiced: false, minInView: 0.9 });
+  await demo.start();
+  // Named as the line's subject, the box below the fold is brought into the picture before the line is said.
+  expect(await inView(page.locator('#below'))).toBeLessThan(0.5);
+  await demo.say('The box below.', { about: page.locator('#below'), ms: 1200 });
+  expect(await inView(page.locator('#below'))).toBe(1);
+  // A section taller than the frame comes to the top, clear of the sticky header, and fills the picture.
+  await demo.say('The tall section.', { about: page.locator('#tall'), ms: 1200 });
+  expect(await inView(page.locator('#tall'))).toBeGreaterThanOrEqual(0.9);
+  const top = await page.locator('#tall').evaluate(el => el.getBoundingClientRect().top);
+  expect(top).toBeGreaterThanOrEqual(64);
+  // A line said in full and then acted on, with what it acts on out of the picture: the take fails, named.
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await demo.say('Then the button far below.', { ms: 1800 });
+  await expect(demo.click(page.locator('#far'))).rejects.toThrow(/Subject out of the picture: 0% .*Then the button far below/);
 });

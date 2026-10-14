@@ -30,6 +30,15 @@ it:
   (no voice key needed) reads every script and lists the lines over a
   level (`--over 0.5`), failing if there are any: the one-command pass
   over a whole series.
+- **Seen** is how much of what the line is about was in the picture while
+  it was up: the least of the elements it names (`about`), the spotlit
+  one and the one its first action works on. Under about 90% the line
+  was said with its subject cut off at an edge, under a sticky header, or
+  out of the picture. `minInView` on the driver fails the take, and
+  `screenplay-voiceover seen` (no voice key needed) lists the lines under
+  a level (`--under 0.9`) across the series. A blank Seen means the line
+  had nothing measured (no `about`, no spotlight, no action after it):
+  look at its frame on the sheet.
 
 ## 2. Frame sheets
 

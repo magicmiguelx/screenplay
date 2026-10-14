@@ -1,4 +1,5 @@
-export { Demo, cardText, readMs, type DemoOptions } from './demo.js';
+export { Demo, cardText, readMs, type DemoOptions, type About } from './demo.js';
+export { inView, inViewShare, bringIntoView, measureSeen, TALL, type Seen } from './view.js';
 export { Recorder, VIDEO, VIDEO_HD, type RecorderOptions, type Size } from './recorder.js';
 export { Timeline, FRAME, type Frame } from './timeline.js';
 export { overlay, type OverlayApi, type OverlayOptions, type Rect, type Placement } from './overlay.js';

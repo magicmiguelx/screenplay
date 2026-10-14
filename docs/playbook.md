@@ -94,6 +94,36 @@ form to work through while you do.
   screen that is dense top and bottom still gets a caption over content;
   the cure there is the screen, not the caption: scroll the subject to
   the middle, or cut to it.
+- **What a line is about is in the picture while it is said.** PF1e
+  Campaigner's series said "Starting gold: roll it, or take the maximum"
+  over the ability scores (the button was below the fold until the click
+  after the line), "Campaign traits…" over a section whose header was the
+  last thing on screen, and "the budget strip rates the fight" over a
+  strip cut by the bottom edge, about twenty lines in all (the owner's
+  note, 14 October 2026: the focus was cut off at the bottom). The
+  driver now measures each line's subject in the picture, by hit-testing
+  a grid of points over it, so a sticky header or a dialog over it counts
+  as hiding it and the overlay does not: the elements the line names
+  (`say(text, { about })`, brought into the picture before the line is
+  said: moved to the middle of the frame with a smooth scroll, or, when
+  taller than the frame, to its top under the sticky header), the element
+  in the spotlight, and the element the line's first action works on,
+  measured before the action scrolls to it, unless the action came within
+  a second and a half of the line (a note and its click: the viewer sees
+  the cursor go to it). A subject taller than the frame is in view once
+  it fills three quarters of the frame's height. `spot()` and every click
+  now bring their element to the middle when it is not wholly in view
+  (Playwright's own scroll left a half-visible element at the bottom
+  edge, under the caption). The share goes in the script's "Seen" column,
+  `minInView` on the driver fails a take on a line under it, named, and
+  `screenplay-voiceover seen` lists the lines under 90% across a series.
+  The cure is in the spec: name the subject (`about`), or act first and
+  say the line over the result ("Open one, and the ledger says…" was
+  said before the ledger opened); a line about nothing on the page says
+  so with `about: false`. A line over a picture card has its subject on
+  the other page: bring it into view there before the screenshot
+  (`bringIntoView`), and name it as the line's `about`, which is then
+  measured and not scrolled.
 - **The voice has a speed limit.** The model reads a short, plain
   sentence fast: PF1e Campaigner's series ran at a median 2.97 words a
   second with lines up to 4.4 ("A custom row is a name, and a price" in

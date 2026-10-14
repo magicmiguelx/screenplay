@@ -56,6 +56,13 @@ time by the checklist below, and ticks it as it goes.
      or spotlights, and logs the cover in the script's "Over" column;
      `maxCover` fails a take on a line over it (the owner's rule, 12
      October 2026: captions had covered what the line was about).
+   - What a line is about is in the picture while it is said: named
+     with `about` (brought into view first) or acted on before the line;
+     the driver measures each line's subject (its `about`, the
+     spotlight, its first action's target), logs it in the script's
+     "Seen" column, and `minInView` fails a take on a line under it
+     (the owner's rule, 14 October 2026: the focus of a line was cut off
+     at the bottom of the frame).
    - Nothing in the picture is tilted on purpose: no rotated picture
      card, no drawn page at an angle in a hook picture, no transform on
      a still (the owner's rule, 12 October 2026; a one-degree tilt read

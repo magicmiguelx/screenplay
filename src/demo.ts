@@ -5,6 +5,7 @@ import { overlay, type OverlayApi, type OverlayOptions, type Rect } from './over
 import { choosePlacement, type Prefer, type Where } from './place.js';
 import { Recorder, VIDEO, type RecorderOptions, type Size } from './recorder.js';
 import { writeScript, type ScriptLine } from './script.js';
+import { bringIntoView, inView } from './view.js';
 import { clip, clipPath, mix, seconds, speakable, voiceAvailable } from './voice.js';
 
 // The driver: a person driving the app on camera. The overlay's cursor goes
@@ -13,7 +14,18 @@ import { clip, clipPath, mix, seconds, speakable, voiceAvailable } from './voice
 // placed in the video by the recorder's frames.
 
 /** A line of the voice-over script while it is being recorded: its wall-clock span, placed on the frames at save(). */
-interface Line { kind: 'card' | 'caption'; text: string; voice: string; from: number; to?: number; at?: Where; cover?: number }
+interface Line { kind: 'card' | 'caption'; text: string; voice: string; from: number; to?: number; at?: Where; cover?: number; seen?: number; subject?: string }
+
+/** What a line is about: the elements it describes (brought into the picture before it is said), or `false` for a line about nothing on the page. */
+export type About = Locator | Locator[] | false;
+
+/**
+ * How long a line may be up before the element its first action works on
+ * is in the picture: a note followed by its click scrolls at once, which
+ * the viewer sees as the cursor going to it; a line said in full and then
+ * acted on was said over the wrong picture.
+ */
+const FIRST_ACTION_GRACE_MS = 1500;
 
 /** Where a line asks its caption to sit; neither flag: the emptier position. */
 const prefer = (opts: { top?: boolean; bottom?: boolean }): Prefer => (opts.top ? 'top' : opts.bottom ? 'bottom' : 'auto');
@@ -50,6 +62,17 @@ export interface DemoOptions {
   maxCover?: number;
   coverNote?: number;
   /**
+   * The least of a line's subject that must be in the picture while the
+   * line is up, as a share of it (0 to 1; `view.ts` says how a share is
+   * measured): the elements given as its `about`, the element in the
+   * spotlight, and the element its first action works on (measured before
+   * the action scrolls to it). Under it the take fails, named; unset, the
+   * share is measured and reported (the script's "Seen" column, and a note
+   * in the log under `inViewNote`, default 0.95).
+   */
+  minInView?: number;
+  inViewNote?: number;
+  /**
    * How long each spoken line takes (seconds, by its spoken text), kept in
    * this JSON file: the recording waits for it, so the voice has room for
    * every line, and a re-recording without the key keeps the same room.
@@ -77,6 +100,12 @@ export class Demo {
   private caption: { text: string; prefer: Prefer; at: Where; box: Rect } | null = null;
   private readonly maxCover?: number;
   private readonly coverNote: number;
+  private readonly minInView?: number;
+  private readonly inViewNote: number;
+  /** A picture card is up: the page behind it is not what a line is about. */
+  private pictureUp = false;
+  /** The caption line whose first action has not come yet, and when it went up (ms). */
+  private pending: { line: Line; at: number } | null = null;
   readonly layout: Size;
 
   constructor(readonly page: Page, opts: DemoOptions = {}) {
@@ -87,6 +116,8 @@ export class Demo {
     this.durationsFile = opts.durationsFile;
     this.maxCover = opts.maxCover;
     this.coverNote = opts.coverNote ?? 0.5;
+    this.minInView = opts.minInView;
+    this.inViewNote = opts.inViewNote ?? 0.95;
     this.voiced = opts.voiced ?? (voiceAvailable() && process.env.DEMOS_VOICE !== '0');
     if (this.durationsFile) {
       try { this.spoken = JSON.parse(readFileSync(this.durationsFile, 'utf8')); } catch { /* a new file */ }
@@ -100,6 +131,8 @@ export class Demo {
     this.rec.onResume = (cut, drawn) => {
       const pausedAt = Date.now() - cut * 1000;
       if (drawn === 0 && this.speechEnd > pausedAt) this.speechEnd += cut * 1000;
+      // A cut after a line ended starts a new picture: what comes next is not what the line was said over.
+      if (this.pending && this.pending.line !== this.open) this.pending = null;
     };
   }
 
@@ -207,6 +240,7 @@ export class Demo {
   async card(kicker: string, title: string, sub: string, ms = 4500, voice?: string, opts: { hold?: boolean } = {}) {
     await this.waitSpeech();
     this.logCaption(null);
+    this.pending = null;
     this.caption = null; // the card ends the line; a restore() under it must not bring it back
     const said = await this.voiceOf(cardText(title, sub), voice);
     await this.ui('card', kicker, title, sub);
@@ -232,6 +266,7 @@ export class Demo {
   async cardAcross(kicker: string, title: string, sub: string, between: () => Promise<unknown>, ms = 4200, voice?: string) {
     await this.waitSpeech();
     this.logCaption(null);
+    this.pending = null;
     this.caption = null; // the card ends the line; a restore() under it must not bring it back
     const said = await this.voiceOf(cardText(title, sub), voice);
     await this.ui('card', kicker, title, sub);
@@ -261,14 +296,16 @@ export class Demo {
    * (docs/writing-for-the-ear.md). While the screencast is paused it is a
    * `note()`: set and logged, left up for the frames drawn next.
    */
-  async say(text: string, opts: { ms?: number; keep?: boolean; top?: boolean; bottom?: boolean; voice?: string } = {}) {
+  async say(text: string, opts: { ms?: number; keep?: boolean; top?: boolean; bottom?: boolean; voice?: string; about?: About } = {}) {
     await this.waitSpeech();
     const said = await this.voiceOf(text, opts.voice);
     this.logCaption(null);
-    await this.showCaption(text, prefer(opts));
+    const boxes = await this.subjects(opts.about);
+    await this.showCaption(text, prefer(opts), boxes);
     await this.shown();
     this.logCaption(text, said);
     this.spokenNow(said);
+    await this.checkSubjects(opts.about);
     if (!opts.keep && !this.rec.paused) {
       await this.wait(opts.ms ?? readMs(text));
       await this.waitSpeech();
@@ -279,14 +316,81 @@ export class Demo {
   }
 
   /** Show a caption while something else happens; the next say() replaces it. */
-  async note(text: string, opts: { top?: boolean; bottom?: boolean; voice?: string } = {}) {
+  async note(text: string, opts: { top?: boolean; bottom?: boolean; voice?: string; about?: About } = {}) {
     await this.waitSpeech();
     const said = await this.voiceOf(text, opts.voice);
     this.logCaption(null);
-    await this.showCaption(text, prefer(opts));
+    const boxes = await this.subjects(opts.about);
+    await this.showCaption(text, prefer(opts), boxes);
     await this.shown();
     this.logCaption(text, said);
     this.spokenNow(said);
+    await this.checkSubjects(opts.about);
+  }
+
+  /** A line's `about` as a list. */
+  private static aboutList(about: About | undefined): Locator[] {
+    return !about ? [] : Array.isArray(about) ? about : [about];
+  }
+
+  /**
+   * Bring what a line is about into the picture before it is said, and
+   * return the boxes the caption keeps off (with the spotlit element's).
+   * Under a picture card the page is not scrolled: the picture was taken
+   * already, so its subject was put in view on its own page before
+   * (`bringIntoView`), and is only measured.
+   */
+  private async subjects(about: About | undefined): Promise<Rect[] | null> {
+    const list = Demo.aboutList(about);
+    if (!list.length) return null;
+    const boxes: Rect[] = this.spotBox ? [this.spotBox] : [];
+    for (const target of list) {
+      if (!this.pictureUp) await bringIntoView(target);
+      if (!this.pictureUp && target.page() === this.page) {
+        const box = await target.boundingBox();
+        if (box) boxes.push(box);
+      }
+    }
+    return boxes;
+  }
+
+  /**
+   * The line just shown has its subjects in the picture: its `about`, and
+   * the spotlit element. The least share is kept on the line; under
+   * `minInView` the take fails. A line with no `about` waits for its first
+   * action to name its subject (`firstAction`).
+   */
+  private async checkSubjects(about: About | undefined) {
+    const line = this.open;
+    if (!line) return;
+    for (const target of Demo.aboutList(about)) this.seen(line, await inView(target), target, 'about');
+    if (this.spotTarget && !this.pictureUp) this.seen(line, await inView(this.spotTarget), this.spotTarget, 'in the spotlight');
+    this.pending = about === undefined && !this.pictureUp ? { line, at: Date.now() } : null;
+  }
+
+  /**
+   * The element an action is about to work on (a click, a field, a
+   * spotlight), measured before the action scrolls to it: if it is the
+   * first action since a line went up and the line has been up a while,
+   * the line was said with this element out of the picture.
+   */
+  private async firstAction(target: Locator) {
+    const p = this.pending;
+    this.pending = null;
+    if (!p || this.pictureUp || target.page() !== this.page) return;
+    if (Date.now() - p.at < FIRST_ACTION_GRACE_MS) return;
+    this.seen(p.line, await inView(target), target, 'acted on next');
+  }
+
+  /** Keep the least share of a line's subjects; under `minInView` the take fails, named. */
+  private seen(line: Line, share: number, target: Locator, how: string) {
+    const subject = `${how}: ${target}`;
+    if (line.seen === undefined || share < line.seen) { line.seen = share; line.subject = subject; }
+    const pct = Math.round(share * 100);
+    if (this.minInView !== undefined && share < this.minInView) {
+      throw new Error(`Subject out of the picture: ${pct}% of it in view (${subject}), under ${this.minInView}, while the line was up: "${line.text}". Put it in view before the line (say(…, { about }), or act first and then say it), or name the right subject.`);
+    }
+    if (share < this.inViewNote) console.log(`  subject ${pct}% in view (${subject}): ${line.text}`);
   }
 
   /** Take the caption down, once its line has been spoken. */
@@ -298,7 +402,7 @@ export class Demo {
    * acts on), and remember it for `restore()` and `keepClear()`. The cover
    * is logged on the line; over `maxCover` the take fails, named.
    */
-  private async showCaption(text: string | null, prefer: Prefer = 'auto', avoid: Rect | null = null) {
+  private async showCaption(text: string | null, prefer: Prefer = 'auto', avoid: Rect | Rect[] | null = null) {
     if (!text) { this.caption = null; await this.ui('caption', null); return; }
     avoid ??= this.spotBox;
     const covers = await this.page.evaluate(([t, a]) => {
@@ -335,18 +439,22 @@ export class Demo {
   }
 
   /** A picture (a data: URL or an address the page can load) over the app, or none. */
-  async picture(src: string | null) { await this.ui('picture', src); }
+  async picture(src: string | null) { await this.ui('picture', src); this.pictureUp = !!src; }
 
   /** Outline an element (or nothing) to draw the eye to it. */
   async spot(target: Locator | null) {
-    if (target) await target.scrollIntoViewIfNeeded();
+    if (target) { await this.firstAction(target); await bringIntoView(target); }
     const box = target ? await target.boundingBox() : null;
     await this.keepClear(box);
     await this.ui('spot', box);
     this.spotBox = box;
+    this.spotTarget = target;
+    // Lit under a line that is up: it is what the line is about now.
+    if (target && this.open && !this.pictureUp) this.seen(this.open, await inView(target), target, 'in the spotlight');
   }
   /** The spotlit element while the spotlight is on: a caption placed meanwhile keeps off it. */
   private spotBox: Rect | null = null;
+  private spotTarget: Locator | null = null;
 
   /** Glide the cursor to a point, then move the real mouse there (hover effects follow the cursor). */
   async moveTo(x: number, y: number, ms?: number) {
@@ -361,7 +469,8 @@ export class Demo {
 
   /** The middle of an element, scrolled into view first. */
   async center(target: Locator): Promise<[number, number]> {
-    await target.scrollIntoViewIfNeeded();
+    await this.firstAction(target);
+    await bringIntoView(target);
     const box = await target.boundingBox();
     if (!box) throw new Error(`Not on screen: ${target}`);
     await this.keepClear(box);
@@ -536,10 +645,12 @@ export class Demo {
     mkdirSync(dirname(out), { recursive: true });
     const end = Date.now() / 1000;
     await this.rec.save(out);
-    const lines: ScriptLine[] = this.lines.map(l => ({ kind: l.kind, text: l.text, voice: l.voice, start: this.rec.videoTime(l.from), end: this.rec.videoTime(l.to ?? end), ...(l.at ? { at: l.at, cover: l.cover } : {}) }));
+    const lines: ScriptLine[] = this.lines.map(l => ({ kind: l.kind, text: l.text, voice: l.voice, start: this.rec.videoTime(l.from), end: this.rec.videoTime(l.to ?? end), ...(l.at ? { at: l.at, cover: l.cover } : {}), ...(l.seen !== undefined ? { seen: l.seen, subject: l.subject } : {}) }));
     const length = this.rec.videoTime(end);
     const busy = lines.filter(l => (l.cover ?? 0) > this.coverNote);
     if (busy.length) console.log(`${busy.length} caption${busy.length === 1 ? '' : 's'} over more than ${Math.round(this.coverNote * 100)}% content (the script's Over column):\n${busy.map(l => `  ${l.at} ${Math.round(Math.min(1, l.cover ?? 0) * 100)}%${(l.cover ?? 0) > 1 ? ' on the target' : ''}  ${l.text}`).join('\n')}`);
+    const unseen = lines.filter(l => l.seen !== undefined && l.seen < this.inViewNote);
+    if (unseen.length) console.log(`${unseen.length} line${unseen.length === 1 ? '' : 's'} with its subject under ${Math.round(this.inViewNote * 100)}% in view (the script's Seen column):\n${unseen.map(l => `  ${Math.round((l.seen ?? 0) * 100)}%  ${l.text}  (${l.subject})`).join('\n')}`);
     writeScript(scriptBase, lines, { title: info.title, spec: info.spec, root: info.root ?? process.cwd(), video: resolve(out), length, spoken: this.spoken });
     if (this.durationsFile) {
       let durations: Record<string, number> = {};

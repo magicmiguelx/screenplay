@@ -46,10 +46,12 @@ async function main() {
   const configFile = resolve(at >= 0 ? args[at + 1] : 'screenplay.config.mjs');
   const overAt = args.indexOf('--over');
   const over = overAt >= 0 ? Number(args[overAt + 1]) : 0.5;
-  const rest = args.filter((a, i) => a !== '--dry' && a !== '--config' && a !== '--over' && i !== at + 1 && i !== overAt + 1);
+  const underAt = args.indexOf('--under');
+  const under = underAt >= 0 ? Number(args[underAt + 1]) : 0.9;
+  const rest = args.filter((a, i) => a !== '--dry' && a !== '--config' && a !== '--over' && a !== '--under' && i !== at + 1 && i !== overAt + 1 && i !== underAt + 1);
   const [command, ...names] = rest;
-  if (!['speak', 'mix', 'check', 'cover'].includes(command)) {
-    console.error('Usage: screenplay-voiceover speak|mix|check|cover [name…] [--dry] [--config file] [--over 0.5]');
+  if (!['speak', 'mix', 'check', 'cover', 'seen'].includes(command)) {
+    console.error('Usage: screenplay-voiceover speak|mix|check|cover|seen [name…] [--dry] [--config file] [--over 0.5] [--under 0.9]');
     process.exit(1);
   }
   if (!existsSync(configFile)) {
@@ -59,7 +61,7 @@ async function main() {
   const cfg = (await import(pathToFileURL(configFile).href)).default as ScreenplayConfig;
   const root = resolve(configFile, '..');
   configure(cfg.voice);
-  if (command !== 'cover' && !dry && !voiceAvailable()) {
+  if (command !== 'cover' && command !== 'seen' && !dry && !voiceAvailable()) {
     console.error('Set ELEVENLABS_API_KEY (or use --dry for stand-in clips).');
     process.exit(1);
   }
@@ -135,6 +137,25 @@ async function main() {
       for (const l of bad) console.log(`  ${l.at} ${Math.round(Math.min(1, l.cover ?? 0) * 100)}%${(l.cover ?? 0) > 1 ? ' on the target' : ''}  ${l.caption}`);
     }
     console.log(flagged ? `${flagged} of ${measured} captions over ${Math.round(over * 100)}% content.` : `Every caption (${measured}) under ${Math.round(over * 100)}% content.`);
+    if (flagged) process.exit(1);
+  }
+
+  // How much of what each line is about was in the picture, from the scripts: the lines under `--under` (default 0.9), per video.
+  if (command === 'seen') {
+    let flagged = 0, measured = 0;
+    for (const name of videos) {
+      const jsonFile = join(SCRIPTS, `${name}.json`);
+      if (!existsSync(jsonFile)) continue;
+      const all = JSON.parse(readFileSync(jsonFile, 'utf8')) as { kind: string; caption: string; seen?: number; subject?: string }[];
+      const rows = all.filter(l => l.seen !== undefined);
+      const captions = all.filter(l => l.kind === 'caption').length;
+      measured += rows.length;
+      const bad = rows.filter(l => (l.seen ?? 1) < under);
+      flagged += bad.length;
+      console.log(`${name}: ${rows.length} of ${captions} captions with a subject measured${bad.length ? `, ${bad.length} under ${Math.round(under * 100)}% in view:` : ''}`);
+      for (const l of bad) console.log(`  ${Math.round((l.seen ?? 0) * 100)}%  ${l.caption}  (${l.subject})`);
+    }
+    console.log(flagged ? `${flagged} of ${measured} lines with their subject under ${Math.round(under * 100)}% in view.` : `Every measured line (${measured}) had its subject in view.`);
     if (flagged) process.exit(1);
   }
 

@@ -12,6 +12,8 @@ export interface ScriptLine {
   kind: 'card' | 'caption'; text: string; voice: string; start: number; end: number;
   /** A caption's place and what it covered there: the share of the page's content under its box, 0 to 1 (over 1: on the element the line is about). */
   at?: 'bottom' | 'top'; cover?: number;
+  /** The least share of what the line is about that was in the picture while it was up, 0 to 1, and which subject that was (view.ts). */
+  seen?: number; subject?: string;
 }
 
 /** 83.5 s → "01:23.500" (WebVTT) */
@@ -49,6 +51,7 @@ export const vtt = (lines: ScriptLine[]) => ['WEBVTT', '', ...lines.flatMap((l, 
 export const json = (lines: ScriptLine[]) => JSON.stringify(lines.map(l => ({
   kind: l.kind, start: Math.round(l.start * 1000) / 1000, end: Math.round(l.end * 1000) / 1000, caption: l.text, voice: l.voice,
   ...(l.at ? { at: l.at, cover: Math.round((l.cover ?? 0) * 100) / 100 } : {}),
+  ...(l.seen !== undefined ? { seen: Math.round(l.seen * 100) / 100, subject: l.subject } : {}),
 })), null, 2) + '\n';
 
 export function markdown(lines: ScriptLine[], info: ScriptInfo) {
@@ -62,16 +65,19 @@ export function markdown(lines: ScriptLine[], info: ScriptInfo) {
     'from the caption: punctuation for its pauses, words placed so the voice reads them the right way.',
     '"Over" is where the caption sat (top or bottom, the emptier of the two) and how much of the page\'s own',
     'content was under its box there, as a share of the box; a card covers the whole frame by design.',
+    '"Seen" is how much of what the line is about was in the picture while it was up (the least of its',
+    'subjects: the elements it names, the spotlit one, the one its first action works on).',
     'The captions, timed, are in the `.vtt` file beside this one; the `.json` has both.',
     '',
-    '| # | Start | Room | Voice | Words | Over | Caption | Spoken |',
-    '| -: | -: | -: | -: | -: | --- | --- | --- |',
+    '| # | Start | Room | Voice | Words | Over | Seen | Caption | Spoken |',
+    '| -: | -: | -: | -: | -: | --- | -: | --- | --- |',
     ...lines.map((l, i) => {
       const caption = l.kind === 'card' ? `**${cell(l.text)}**` : cell(l.text);
       const spoken = l.voice && l.voice !== l.text ? cell(l.voice) : '';
       const voice = info.spoken[l.voice] ? `${info.spoken[l.voice].toFixed(1)} s` : '';
       const over = l.at ? `${l.at} ${Math.round(Math.min(1, l.cover ?? 0) * 100)}%${(l.cover ?? 0) > 1 ? ' !' : ''}` : '';
-      return `| ${i + 1} | ${clock(l.start)} | ${(l.end - l.start).toFixed(1)} s | ${voice} | ${words(l.voice || l.text).length} | ${over} | ${caption} | ${spoken} |`;
+      const seen = l.seen !== undefined ? `${Math.round(l.seen * 100)}%` : '';
+      return `| ${i + 1} | ${clock(l.start)} | ${(l.end - l.start).toFixed(1)} s | ${voice} | ${words(l.voice || l.text).length} | ${over} | ${seen} | ${caption} | ${spoken} |`;
     }),
     '',
   ].join('\n');
