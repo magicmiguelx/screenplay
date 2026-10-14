@@ -106,11 +106,15 @@ form to work through while you do.
   as hiding it and the overlay does not: the elements the line names
   (`say(text, { about })`, brought into the picture before the line is
   said: moved to the middle of the frame with a smooth scroll, or, when
-  taller than the frame, to its top under the sticky header), the element
+  taller than the frame, to its top under the sticky header; one already
+  in view but in the frame's top or bottom tenth is moved to the middle
+  too, since the bottom edge is where the caption goes), the element
   in the spotlight, and the element the line's first action works on,
   measured before the action scrolls to it, unless the action came within
   a second and a half of the line (a note and its click: the viewer sees
-  the cursor go to it). A subject taller than the frame is in view once
+  the cursor go to it); a spotlight put up after a line has ended counts
+  for it only if the next line does not take it ("spot, then say" sets up
+  the next line). A subject taller than the frame is in view once
   it fills three quarters of the frame's height. `spot()` and every click
   now bring their element to the middle when it is not wholly in view
   (Playwright's own scroll left a half-visible element at the bottom

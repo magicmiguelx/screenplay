@@ -240,6 +240,7 @@ export class Demo {
   async card(kicker: string, title: string, sub: string, ms = 4500, voice?: string, opts: { hold?: boolean } = {}) {
     await this.waitSpeech();
     this.logCaption(null);
+    this.commitCandidate();
     this.pending = null;
     this.caption = null; // the card ends the line; a restore() under it must not bring it back
     const said = await this.voiceOf(cardText(title, sub), voice);
@@ -266,6 +267,7 @@ export class Demo {
   async cardAcross(kicker: string, title: string, sub: string, between: () => Promise<unknown>, ms = 4200, voice?: string) {
     await this.waitSpeech();
     this.logCaption(null);
+    this.commitCandidate();
     this.pending = null;
     this.caption = null; // the card ends the line; a restore() under it must not bring it back
     const said = await this.voiceOf(cardText(title, sub), voice);
@@ -363,8 +365,11 @@ export class Demo {
   private async checkSubjects(about: About | undefined) {
     const line = this.open;
     if (!line) return;
-    for (const target of Demo.aboutList(about)) this.seen(line, await inView(target), target, 'about');
-    if (this.spotTarget && !this.pictureUp) this.seen(line, await inView(this.spotTarget), this.spotTarget, 'in the spotlight');
+    // A spotlight put up after the line before and still on is this line's setup, not the last line's subject.
+    if (this.candidate && this.candidate.target === this.spotTarget) this.candidate = null;
+    else this.commitCandidate();
+    for (const target of Demo.aboutList(about)) this.seen(line, await this.settledInView(target), target, 'about');
+    if (this.spotTarget && !this.pictureUp) this.seen(line, await this.settledInView(this.spotTarget), this.spotTarget, 'in the spotlight');
     this.pending = about === undefined && !this.pictureUp ? { line, at: Date.now() } : null;
   }
 
@@ -374,12 +379,39 @@ export class Demo {
    * first action since a line went up and the line has been up a while,
    * the line was said with this element out of the picture.
    */
-  private async firstAction(target: Locator) {
+  private async firstAction(target: Locator, spotlight = false) {
+    this.commitCandidate();
     const p = this.pending;
     this.pending = null;
     if (!p || this.pictureUp || target.page() !== this.page) return;
     if (Date.now() - p.at < FIRST_ACTION_GRACE_MS) return;
-    this.seen(p.line, await inView(target), target, 'acted on next');
+    const share = await inView(target);
+    // A spotlight after a line has ended is either that line's subject or
+    // the next line's setup ("spot, then say"): it is kept until the next
+    // line shows whether that line uses it.
+    if (spotlight && p.line !== this.open) { this.candidate = { line: p.line, share, target }; return; }
+    this.seen(p.line, share, target, 'acted on next');
+  }
+  /** A spotlight measured for an ended line, not yet known to be its subject. */
+  private candidate: { line: Line; share: number; target: Locator } | null = null;
+  private commitCandidate() {
+    const c = this.candidate;
+    this.candidate = null;
+    if (c) this.seen(c.line, c.share, c.target, 'spotlit next');
+  }
+
+  /**
+   * The share of a subject in view once the page has settled: measured
+   * again for up to a second while it is short (a page just navigated to
+   * can show its content a moment after mounting it), the best kept.
+   */
+  private async settledInView(target: Locator) {
+    let best = await inView(target);
+    for (let i = 0; i < 4 && best < (this.minInView ?? this.inViewNote); i++) {
+      await this.wait(250);
+      best = Math.max(best, await inView(target));
+    }
+    return best;
   }
 
   /** Keep the least share of a line's subjects; under `minInView` the take fails, named. */
@@ -443,14 +475,15 @@ export class Demo {
 
   /** Outline an element (or nothing) to draw the eye to it. */
   async spot(target: Locator | null) {
-    if (target) { await this.firstAction(target); await bringIntoView(target); }
+    if (target) { await this.firstAction(target, true); await bringIntoView(target); }
+    else this.commitCandidate();
     const box = target ? await target.boundingBox() : null;
     await this.keepClear(box);
     await this.ui('spot', box);
     this.spotBox = box;
     this.spotTarget = target;
     // Lit under a line that is up: it is what the line is about now.
-    if (target && this.open && !this.pictureUp) this.seen(this.open, await inView(target), target, 'in the spotlight');
+    if (target && this.open && !this.pictureUp) this.seen(this.open, await this.settledInView(target), target, 'in the spotlight');
   }
   /** The spotlit element while the spotlight is on: a caption placed meanwhile keeps off it. */
   private spotBox: Rect | null = null;
@@ -642,6 +675,7 @@ export class Demo {
   async save(out: string, scriptBase: string, info: { title: string; spec: string; root?: string }) {
     await this.waitSpeech();
     this.logCaption(null);
+    this.commitCandidate();
     mkdirSync(dirname(out), { recursive: true });
     const end = Date.now() / 1000;
     await this.rec.save(out);

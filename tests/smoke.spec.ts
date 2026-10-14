@@ -148,6 +148,12 @@ test('what a line is about is in the picture, or the take fails', async ({ page 
   expect(await inView(page.locator('#tall'))).toBeGreaterThanOrEqual(0.9);
   const top = await page.locator('#tall').evaluate(el => el.getBoundingClientRect().top);
   expect(top).toBeGreaterThanOrEqual(64);
+  // A spotlight put up after a line, for the next line ("spot, then say"), is the next line's subject.
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await demo.say('The top of the page.', { ms: 1800 });
+  await demo.spot(page.locator('#far'));
+  await demo.say('Far below, lit.', { ms: 1200 });
+  await demo.spot(null);
   // A line said in full and then acted on, with what it acts on out of the picture: the take fails, named.
   await page.evaluate(() => window.scrollTo(0, 0));
   await demo.say('Then the button far below.', { ms: 1800 });

@@ -55,8 +55,9 @@ export function measureSeen(el: Element): Seen {
       const x = left + ((i + 0.5) * w) / cols, y = top + ((j + 0.5) * h) / rows;
       n++;
       const at = document.elementsFromPoint(x, y).find(e => !e.closest('#demo-overlay'));
-      // On the element or inside it; anything else there (a sticky header, a dialog) hides it.
-      if (at && (at === el || el.contains(at))) hit++;
+      // On the element, inside it, or on a box it sits in (outside its painted shape: a clip-path, a
+      // rounded corner); anything else on top there (a sticky header, a dialog) hides it.
+      if (at && (at === el || el.contains(at) || at.contains(el))) hit++;
     }
   }
   return { box: { x: r.left, y: r.top, width: r.width, height: r.height }, viewport: { width: vw, height: vh }, inside: w * h, hit: n ? hit / n : 0 };
@@ -69,16 +70,34 @@ export async function inView(target: Locator): Promise<number> {
 }
 
 /**
- * Bring `target` into the picture if it is not already wholly in it: a
+ * The band at the top and the bottom of the frame (a share of its height)
+ * a subject is not left in: an element wholly in view but on the bottom
+ * edge is where the caption goes and where the eye does not look (PF1e
+ * Campaigner's point-buy line was said with its select on the last row of
+ * the frame).
+ */
+export const EDGE = 0.1;
+
+/**
+ * Bring `target` into the picture if it is not already well in it: a
  * smooth scroll that puts it in the middle of the frame (or, when it is
  * taller than the frame, its top just under whatever the page keeps over
- * the top edge, a sticky header), waited out. A subject already in view
- * is left where it is, so the picture does not move under a line for
- * nothing. Returns the share in view afterwards.
+ * the top edge, a sticky header), waited out. A subject already wholly in
+ * view and clear of the frame's top and bottom bands (`EDGE`) is left
+ * where it is, so the picture does not move under a line for nothing.
+ * Returns the share in view afterwards.
  */
 export async function bringIntoView(target: Locator, opts: { smooth?: boolean } = {}): Promise<number> {
-  await target.waitFor({ state: 'attached' });
-  if ((await inView(target)) >= 0.999) return 1;
+  // Visible, not only attached: a page being navigated to can mount its content hidden before it shows it.
+  await target.waitFor({ state: 'visible' });
+  if ((await inView(target)) >= 0.999) {
+    const clear = await target.evaluate((el, edge) => {
+      const r = el.getBoundingClientRect();
+      // A subject that fills most of the frame cannot clear both bands, and need not.
+      return r.height > innerHeight * (1 - 2 * edge) || (r.top >= innerHeight * edge && r.bottom <= innerHeight * (1 - edge));
+    }, EDGE);
+    if (clear) return 1;
+  }
   await target.evaluate((el, smooth) => {
     const r = el.getBoundingClientRect();
     const behavior = (smooth ? 'smooth' : 'instant') as ScrollBehavior;
@@ -93,7 +112,7 @@ export async function bringIntoView(target: Locator, opts: { smooth?: boolean } 
     let y = Math.max(0, r.top) + 1;
     while (y < innerHeight * 0.4) {
       const at = document.elementsFromPoint(x, y).find(e => !e.closest('#demo-overlay'));
-      if (at && (at === el || el.contains(at))) break;
+      if (at && (at === el || el.contains(at) || at.contains(el))) break;
       y += 8;
     }
     const covered = y - Math.max(0, r.top);
