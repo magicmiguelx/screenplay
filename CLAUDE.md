@@ -86,6 +86,10 @@ time by the checklist below, and ticks it as it goes.
   test process, options serialised through `addInitScript`.
 - `src/timeline.ts` is pure and unit-tested; a change to how frames,
   cuts or holds are timed gets a test in `tests/unit/timeline.test.mjs`.
+  So is `src/subjects.ts` (which line a subject's measurement belongs
+  to, for "Seen" and `minInView`): a change to it gets a test in
+  `tests/unit/subjects.test.mjs`. Keep decisions in the pure modules and
+  the browser work in `demo.ts`.
 - `npm run typecheck`, `npm run test:unit` and `npm run test:smoke` (a
   real recording of a small page: Chromium and ffmpeg) before a push.
   The smoke test asserts the opening card's time and the video's length,

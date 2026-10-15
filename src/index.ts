@@ -3,6 +3,7 @@ export { inView, inViewShare, bringIntoView, measureSeen, TALL, EDGE, type Seen 
 export { Recorder, VIDEO, VIDEO_HD, type RecorderOptions, type Size } from './recorder.js';
 export { Timeline, FRAME, type Frame } from './timeline.js';
 export { overlay, type OverlayApi, type OverlayOptions, type Rect, type Placement } from './overlay.js';
+export { Subjects, type SubjectLine, type SubjectsOptions } from './subjects.js';
 export { choosePlacement, type Prefer, type Where } from './place.js';
 export { writeScript, vtt, json, markdown, vttTime, clock, cardLength, type ScriptLine, type ScriptInfo } from './script.js';
 export { configure, voiceConfig, asSent, speakable, words, saidWords, pace, slower, clip, clipPath, mix, seconds, transcribe, normalize, diffWords, withoutTags, voiceAvailable, DEFAULTS as VOICE_DEFAULTS, type SayRule, type VoiceConfig, type Placed } from './voice.js';

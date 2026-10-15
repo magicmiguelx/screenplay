@@ -5,6 +5,7 @@ import { overlay, type OverlayApi, type OverlayOptions, type Rect } from './over
 import { choosePlacement, type Prefer, type Where } from './place.js';
 import { Recorder, VIDEO, type RecorderOptions, type Size } from './recorder.js';
 import { writeScript, type ScriptLine } from './script.js';
+import { Subjects } from './subjects.js';
 import { bringIntoView, inView } from './view.js';
 import { clip, clipPath, mix, seconds, speakable, voiceAvailable } from './voice.js';
 
@@ -104,8 +105,8 @@ export class Demo {
   private readonly inViewNote: number;
   /** A picture card is up: the page behind it is not what a line is about. */
   private pictureUp = false;
-  /** The caption line whose first action has not come yet, and when it went up (ms). */
-  private pending: { line: Line; at: number } | null = null;
+  /** Which element each line is about and how much of it was in view (subjects.ts). */
+  private readonly subjectsOf: Subjects<Locator>;
   readonly layout: Size;
 
   constructor(readonly page: Page, opts: DemoOptions = {}) {
@@ -118,6 +119,7 @@ export class Demo {
     this.coverNote = opts.coverNote ?? 0.5;
     this.minInView = opts.minInView;
     this.inViewNote = opts.inViewNote ?? 0.95;
+    this.subjectsOf = new Subjects<Locator>({ min: this.minInView, note: this.inViewNote, grace: FIRST_ACTION_GRACE_MS });
     this.voiced = opts.voiced ?? (voiceAvailable() && process.env.DEMOS_VOICE !== '0');
     if (this.durationsFile) {
       try { this.spoken = JSON.parse(readFileSync(this.durationsFile, 'utf8')); } catch { /* a new file */ }
@@ -132,7 +134,7 @@ export class Demo {
       const pausedAt = Date.now() - cut * 1000;
       if (drawn === 0 && this.speechEnd > pausedAt) this.speechEnd += cut * 1000;
       // A cut after a line ended starts a new picture: what comes next is not what the line was said over.
-      if (this.pending && this.pending.line !== this.open) this.pending = null;
+      this.subjectsOf.resumed(this.open);
     };
   }
 
@@ -238,16 +240,7 @@ export class Demo {
    * its line needs, since no frame would show it being held here.
    */
   async card(kicker: string, title: string, sub: string, ms = 4500, voice?: string, opts: { hold?: boolean } = {}) {
-    await this.waitSpeech();
-    this.logCaption(null);
-    this.commitCandidate();
-    this.pending = null;
-    this.caption = null; // the card ends the line; a restore() under it must not bring it back
-    const said = await this.voiceOf(cardText(title, sub), voice);
-    await this.ui('card', kicker, title, sub);
-    await this.shown();
-    const line: Line = { kind: 'card', text: cardText(title, sub), voice: said, from: Date.now() / 1000 };
-    this.lines.push(line);
+    const { line, said } = await this.showCard(kicker, title, sub, voice);
     this.spokenNow(said);
     if (this.rec.paused) return;
     await this.wait(ms);
@@ -259,22 +252,31 @@ export class Demo {
   }
 
   /**
-   * A title card held across something done off camera (a page load, an
-   * external site): the card comes up, the video cuts while `between` runs,
-   * and the card is back in the new document, settled, before the video
-   * resumes.
+   * Put a title card up once the line before has been spoken, and log it
+   * once it can be read: the start of `card()` and `cardAcross()`.
    */
-  async cardAcross(kicker: string, title: string, sub: string, between: () => Promise<unknown>, ms = 4200, voice?: string) {
+  private async showCard(kicker: string, title: string, sub: string, voice?: string) {
     await this.waitSpeech();
     this.logCaption(null);
-    this.commitCandidate();
-    this.pending = null;
+    this.subjectsOf.commit();
+    this.subjectsOf.drop();
     this.caption = null; // the card ends the line; a restore() under it must not bring it back
     const said = await this.voiceOf(cardText(title, sub), voice);
     await this.ui('card', kicker, title, sub);
     await this.shown();
     const line: Line = { kind: 'card', text: cardText(title, sub), voice: said, from: Date.now() / 1000 };
     this.lines.push(line);
+    return { line, said };
+  }
+
+  /**
+   * A title card held across something done off camera (a page load, an
+   * external site): the card comes up, the video cuts while `between` runs,
+   * and the card is back in the new document, settled, before the video
+   * resumes.
+   */
+  async cardAcross(kicker: string, title: string, sub: string, between: () => Promise<unknown>, ms = 4200, voice?: string) {
+    const { line, said } = await this.showCard(kicker, title, sub, voice);
     // The voice runs on the video's timeline: what is cut out doesn't count towards it.
     const voiceMs = (this.spoken[said] ?? 0) * 1000 + BREATH_MS;
     const before = Math.max(ms * 0.6, voiceMs - ms * 0.4);
@@ -299,15 +301,7 @@ export class Demo {
    * `note()`: set and logged, left up for the frames drawn next.
    */
   async say(text: string, opts: { ms?: number; keep?: boolean; top?: boolean; bottom?: boolean; voice?: string; about?: About } = {}) {
-    await this.waitSpeech();
-    const said = await this.voiceOf(text, opts.voice);
-    this.logCaption(null);
-    const boxes = await this.subjects(opts.about);
-    await this.showCaption(text, prefer(opts), boxes);
-    await this.shown();
-    this.logCaption(text, said);
-    this.spokenNow(said);
-    await this.checkSubjects(opts.about);
+    await this.note(text, opts);
     if (!opts.keep && !this.rec.paused) {
       await this.wait(opts.ms ?? readMs(text));
       await this.waitSpeech();
@@ -366,11 +360,10 @@ export class Demo {
     const line = this.open;
     if (!line) return;
     // A spotlight put up after the line before and still on is this line's setup, not the last line's subject.
-    if (this.candidate && this.candidate.target === this.spotTarget) this.candidate = null;
-    else this.commitCandidate();
-    for (const target of Demo.aboutList(about)) this.seen(line, await this.settledInView(target), target, 'about');
-    if (this.spotTarget && !this.pictureUp) this.seen(line, await this.settledInView(this.spotTarget), this.spotTarget, 'in the spotlight');
-    this.pending = about === undefined && !this.pictureUp ? { line, at: Date.now() } : null;
+    this.subjectsOf.shown(this.spotTarget);
+    for (const target of Demo.aboutList(about)) this.subjectsOf.record(line, await this.settledInView(target), target, 'about');
+    if (this.spotTarget && !this.pictureUp) this.subjectsOf.record(line, await this.settledInView(this.spotTarget), this.spotTarget, 'in the spotlight');
+    this.subjectsOf.waitFor(line, Date.now(), about === undefined && !this.pictureUp);
   }
 
   /**
@@ -380,24 +373,12 @@ export class Demo {
    * the line was said with this element out of the picture.
    */
   private async firstAction(target: Locator, spotlight = false) {
-    this.commitCandidate();
-    const p = this.pending;
-    this.pending = null;
-    if (!p || this.pictureUp || target.page() !== this.page) return;
-    if (Date.now() - p.at < FIRST_ACTION_GRACE_MS) return;
-    const share = await inView(target);
+    const line = this.subjectsOf.acting(Date.now(), this.pictureUp || target.page() !== this.page);
+    if (!line) return;
     // A spotlight after a line has ended is either that line's subject or
-    // the next line's setup ("spot, then say"): it is kept until the next
+    // the next line's setup ("spot, then say"): it is held until the next
     // line shows whether that line uses it.
-    if (spotlight && p.line !== this.open) { this.candidate = { line: p.line, share, target }; return; }
-    this.seen(p.line, share, target, 'acted on next');
-  }
-  /** A spotlight measured for an ended line, not yet known to be its subject. */
-  private candidate: { line: Line; share: number; target: Locator } | null = null;
-  private commitCandidate() {
-    const c = this.candidate;
-    this.candidate = null;
-    if (c) this.seen(c.line, c.share, c.target, 'spotlit next');
+    this.subjectsOf.acted(line, await inView(target), target, { spotlight, open: this.open });
   }
 
   /**
@@ -412,17 +393,6 @@ export class Demo {
       best = Math.max(best, await inView(target));
     }
     return best;
-  }
-
-  /** Keep the least share of a line's subjects; under `minInView` the take fails, named. */
-  private seen(line: Line, share: number, target: Locator, how: string) {
-    const subject = `${how}: ${target}`;
-    if (line.seen === undefined || share < line.seen) { line.seen = share; line.subject = subject; }
-    const pct = Math.round(share * 100);
-    if (this.minInView !== undefined && share < this.minInView) {
-      throw new Error(`Subject out of the picture: ${pct}% of it in view (${subject}), under ${this.minInView}, while the line was up: "${line.text}". Put it in view before the line (say(…, { about }), or act first and then say it), or name the right subject.`);
-    }
-    if (share < this.inViewNote) console.log(`  subject ${pct}% in view (${subject}): ${line.text}`);
   }
 
   /** Take the caption down, once its line has been spoken. */
@@ -476,14 +446,14 @@ export class Demo {
   /** Outline an element (or nothing) to draw the eye to it. */
   async spot(target: Locator | null) {
     if (target) { await this.firstAction(target, true); await bringIntoView(target); }
-    else this.commitCandidate();
+    else this.subjectsOf.commit();
     const box = target ? await target.boundingBox() : null;
     await this.keepClear(box);
     await this.ui('spot', box);
     this.spotBox = box;
     this.spotTarget = target;
     // Lit under a line that is up: it is what the line is about now.
-    if (target && this.open && !this.pictureUp) this.seen(this.open, await this.settledInView(target), target, 'in the spotlight');
+    if (target && this.open && !this.pictureUp) this.subjectsOf.record(this.open, await this.settledInView(target), target, 'in the spotlight');
   }
   /** The spotlit element while the spotlight is on: a caption placed meanwhile keeps off it. */
   private spotBox: Rect | null = null;
@@ -675,7 +645,7 @@ export class Demo {
   async save(out: string, scriptBase: string, info: { title: string; spec: string; root?: string }) {
     await this.waitSpeech();
     this.logCaption(null);
-    this.commitCandidate();
+    this.subjectsOf.commit();
     mkdirSync(dirname(out), { recursive: true });
     const end = Date.now() / 1000;
     // The last frame is held until the last clip is said, in the one encode: left to mix(), the

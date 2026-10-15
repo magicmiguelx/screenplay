@@ -34,11 +34,11 @@ spec (the screenplay)  ──►  Demo (driver)  ──►  overlay in the page:
 | `docs/adopting.md` | Setting a project up: needs, files, the app's side. |
 | `docs/planning.md` | Pointing the kit at an app: how the list of tutorials and promos is found, and the roadmap for making them (`/plan-videos` writes it, `/make-videos` delivers it). |
 | `docs/history.md` | Where each rule came from, with dates. |
-| `src/` | The kit: `Demo` (the driver), `Recorder` and `Timeline`, the `overlay`, the voice (`configure`, `clip`, `mix`, `speakable`), the script writer, a three.js `orbit`, and the `screenplay-voiceover` CLI. |
+| `src/` | The kit: `Demo` (the driver), `Recorder` and `Timeline`, `Subjects` (which line each measured subject belongs to), the `overlay`, the voice (`configure`, `clip`, `mix`, `speakable`), the script writer, a three.js `orbit`, and the `screenplay-voiceover` CLI. |
 | `templates/` | A project's config, its video list, a tutorials spec, a promo spec, a video roadmap to copy and fill in, the card check (`check-cards.mjs`: each video's first and last card measured against its voice) and the vowel check (`vowel-formants.py`: which of two readings the voice gave a word, measured on the vowel). |
 | `examples/` | Five of the Plenoview specs, as recorded, with notes on what to look at: a tutorial, the three promo cuts from one spec (two minutes for outbound, a minute for the hero, twenty seconds for social), and the film at 9:16 for a phone. |
 | `.claude/skills/` | For an agent: `plan-videos` surveys an app and writes its video roadmap; `make-videos` delivers it. |
-| `tests/` | Unit tests of the timeline, the voice text rules and the script writer; a smoke recording of a small page end to end. |
+| `tests/` | Unit tests of the timeline, the subjects, caption placement, the voice text rules, the script writer and the CLI; a smoke recording of a small page end to end. |
 
 ## Quick start
 
