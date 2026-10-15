@@ -458,11 +458,17 @@ The full rules and the measurements are in
   currency are words ("twenty pounds' worth", not "£20").
 - **Symbols become words automatically** (`speakable()`): "→" is "then",
   "Ctrl+Z" is "Control Z", "+" is "plus", "%" is "percent", key hints like
-  "(K)" are dropped.
+  "(K)" are dropped. A bare "×" is "the cross", or "by" between numbers.
 - **Titles that read badly aloud get a spoken form** ("dbt, Open Lineage,
   and Excel"; "The AI prompt, and the C S V import").
 - **Check by listening with a machine.** `voiceover check` transcribes
-  every clip (ElevenLabs Scribe) and lists the words not heard as written.
+  every clip (ElevenLabs Scribe) and lines the transcript up with the
+  text, word by word in order: it lists the words not heard as written
+  and the words heard that were not sent (a word said twice and heard
+  once, a brand heard as another word), and fails when any line differs,
+  as `cover` and `seen` do. Sound tags in the transcript ("[music]") are
+  left out of the comparison. Known transcriber spellings belong in the
+  config's `undo` rules, so a clean series passes.
   Its own spellings ("life cycle", "dialogue", "plano view") are not
   errors; a brand it writes wrongly however it is spelled is noted and
   left. A short line heard as a sound tag ("[outro jingle]") on a clip

@@ -53,8 +53,8 @@ should cover" passed where "say what it should cover" ran at 3.5.
 | `(K)` (a key hint after a word) | dropped |
 | `Ctrl+Shift+F` | "Control Shift F" |
 | `Ctrl+Z` | "Control Z" |
-| a bare `+` | "plus" ("with +," → "with plus,") |
-| `with ×` | "with the cross" |
+| a bare `+` | "plus" ("with +," → "with plus,"; "C++" and "a+b" are left) |
+| a bare `×` | "the cross"; between numbers "by" ("1920 × 1080") |
 | `80%` | "80 percent" |
 | `≥` | "at least " |
 | `…` | "..." |

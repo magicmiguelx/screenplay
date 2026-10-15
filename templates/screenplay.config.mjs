@@ -10,7 +10,11 @@ export default {
   voice: {
     // ELEVENLABS_VOICE and ELEVENLABS_MODEL in the environment override these.
     voiceName: 'James - Professional Male',
+    // Or the voice by id, no lookup by name (ELEVENLABS_VOICE_ID overrides it).
+    // voiceId: '…',
     model: 'eleven_multilingual_v2',
+    // The speech-to-text model `voiceover check` transcribes with.
+    // transcriber: 'scribe_v1',
     // Words the voice says wrongly as written, checked by transcribing its
     // clips (voiceover check): applied to every spoken text, the line's own
     // or the caption's, so scripts can be written plainly.

@@ -678,7 +678,15 @@ export class Demo {
     this.commitCandidate();
     mkdirSync(dirname(out), { recursive: true });
     const end = Date.now() / 1000;
-    await this.rec.save(out);
+    // The last frame is held until the last clip is said, in the one encode: left to mix(), the
+    // whole video was encoded a second time to pad it (a second lossy pass over every frame).
+    let tail = 0.6;
+    if (this.voiced) {
+      const length = this.rec.videoTime(end);
+      const said = Math.max(0, ...this.lines.map(l => this.rec.videoTime(l.from) + (this.spoken[l.voice] ?? 0)));
+      tail = Math.max(tail, said + 0.6 + 0.1 - length);
+    }
+    await this.rec.save(out, tail);
     const lines: ScriptLine[] = this.lines.map(l => ({ kind: l.kind, text: l.text, voice: l.voice, start: this.rec.videoTime(l.from), end: this.rec.videoTime(l.to ?? end), ...(l.at ? { at: l.at, cover: l.cover } : {}), ...(l.seen !== undefined ? { seen: l.seen, subject: l.subject } : {}) }));
     const length = this.rec.videoTime(end);
     const busy = lines.filter(l => (l.cover ?? 0) > this.coverNote);

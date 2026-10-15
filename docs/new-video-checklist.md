@@ -55,8 +55,8 @@ does not). Work down it; every line is a rule from `docs/playbook.md`.
       that miss, dialogs that stay open, lines over the wrong screen.
 - [ ] With the voice (`ELEVENLABS_API_KEY` set): the clips are made as it
       records and cached; look at the mix warnings.
-- [ ] `screenplay-voiceover check <name>`: listen to every line it lists;
-      reword, add a `say` rule, or accept a transcriber's spelling.
+- [ ] `screenplay-voiceover check <name>` (it fails while a line differs): listen to every line it lists;
+      reword, add a `say` rule, or put a transcriber's spelling in `undo`.
 - [ ] Read the script table (`.md`): no Room shorter than Voice, no long
       silence, starts above 0:00.0, no Seen under 90%.
       `docs/quality-check.md`.

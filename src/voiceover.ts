@@ -31,7 +31,7 @@ import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
-import { asSent, clip, configure, mix, normalize, pace, seconds, speakable, transcribe, voiceAvailable, type SayRule, type VoiceConfig } from './voice.js';
+import { asSent, clip, configure, diffWords, mix, normalize, pace, seconds, speakable, transcribe, voiceAvailable, withoutTags, type SayRule, type VoiceConfig } from './voice.js';
 
 export interface ScreenplayConfig {
   /** The folder of the scripts (<name>.vtt / .json / .md, and the durations file). */
@@ -186,16 +186,17 @@ async function main() {
         const file = await clip(line.voice);
         fastest = Math.max(fastest, pace(file, line.voice));
         const heard = await transcribe(file);
-        const want = normalize(line.voice, cfg.undo), got = normalize(heard, cfg.undo);
-        const missing = want.filter(w => !got.includes(w));
-        if (missing.length) {
+        const { missing, extra } = diffWords(normalize(line.voice, cfg.undo), normalize(withoutTags(heard), cfg.undo));
+        if (missing.length || extra.length) {
           differ++;
-          console.log(`${name} line ${i + 1}\n  sent:  ${asSent(line.voice)}\n  heard: ${heard}\n  not heard: ${missing.join(', ')}`);
+          console.log(`${name} line ${i + 1}\n  sent:  ${asSent(line.voice)}\n  heard: ${heard}${missing.length ? `\n  not heard: ${missing.join(', ')}` : ''}${extra.length ? `\n  heard, not sent: ${extra.join(', ')}` : ''}`);
         }
       }
       console.log(`${name}: fastest line ${fastest.toFixed(2)} words a second (ceiling ${cfg.voice?.maxWordsPerSecond ?? 3}).`);
     }
     console.log(differ ? `${differ} lines to listen to.` : 'Every line was heard as written.');
+    // Like cover and seen: a line to listen to fails the command, so a script or a checklist can tell.
+    if (differ) process.exit(1);
   }
 }
 

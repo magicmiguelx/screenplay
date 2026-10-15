@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { asSent, configure, clipPath, normalize, saidWords, slower, speakable, words } from '../../dist/voice.js';
+import { DEFAULTS, asSent, configure, clipPath, diffWords, normalize, saidWords, slower, speakable, withoutTags, words } from '../../dist/voice.js';
 
 test('speakable turns symbols into words', () => {
   assert.equal(speakable('File → Custom node types'), 'File, then Custom node types');
@@ -58,4 +58,43 @@ test('the speed limit: a faster clip is made again slower, within the voice\'s r
 test('the words that are said leave out a bare pause', () => {
   assert.deepEqual(saidWords('Describe it... and the assistant drafts the form.'), ['Describe', 'it...', 'and', 'the', 'assistant', 'drafts', 'the', 'form.']);
   assert.equal(saidWords('Six players. — Forty tabs. ...').length, 4);
+});
+
+test('a bare plus or cross is a word wherever it stands; a cross between numbers is "by"', () => {
+  assert.equal(speakable('Press + to add'), 'Press plus to add');
+  assert.equal(speakable('Add one (+) or two'), 'Add one (+) or two');
+  assert.equal(speakable('Close it with ×.'), 'Close it with the cross.');
+  assert.equal(speakable('Export at 1920 × 1080'), 'Export at 1920 by 1080');
+  assert.equal(speakable('C++ and a+b'), 'C++ and a+b');
+});
+
+test('the clip path follows the voice settings, and settings left at the defaults keep the old path', () => {
+  configure({});
+  const plain = clipPath('Click any item.');
+  configure({ settings: { ...DEFAULTS.settings } });
+  assert.equal(clipPath('Click any item.'), plain, 'the defaults, given or not, are the same clip');
+  configure({ settings: { ...DEFAULTS.settings, speed: 1 } });
+  assert.equal(clipPath('Click any item.'), plain, 'speed 1 is the voice\'s own pace');
+  configure({ settings: { ...DEFAULTS.settings, stability: 0.3 } });
+  assert.notEqual(clipPath('Click any item.'), plain, 'a change of stability is a new clip');
+  configure({ settings: { ...DEFAULTS.settings, speed: 0.9 } });
+  assert.notEqual(clipPath('Click any item.'), plain, 'a change of speed is a new clip');
+  configure({ voiceId: 'abc123' });
+  assert.notEqual(clipPath('Click any item.'), plain, 'a voice named by id is its own voice');
+  configure({});
+});
+
+test('the check compares in order: a word left out, a word added, a word heard once of two', () => {
+  const n = t => normalize(t);
+  assert.deepEqual(diffWords(n('Click any item to read it'), n('Click any item to read it.')), { missing: [], extra: [] });
+  assert.deepEqual(diffWords(n('Present the tour'), n('Present tour')), { missing: ['the'], extra: [] });
+  assert.deepEqual(diffWords(n('Open the AI button'), n('Open the OpenAI button')), { missing: ['ai'], extra: ['openai'] });
+  assert.deepEqual(diffWords(n('the menu and the map'), n('the menu and map')), { missing: ['the'], extra: [] });
+  assert.deepEqual(diffWords(n('Click save'), n('Click save now please')), { missing: [], extra: ['now', 'please'] });
+  assert.deepEqual(diffWords([], n('hello')), { missing: [], extra: ['hello'] });
+});
+
+test('sound tags are not what was said', () => {
+  assert.equal(withoutTags('[outro jingle] Thanks for watching (music)'), 'Thanks for watching');
+  assert.equal(withoutTags('[upbeat music]'), '');
 });

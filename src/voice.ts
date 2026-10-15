@@ -19,7 +19,7 @@
 
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, renameSync, unlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
 /** A word the voice says wrongly as written, and what to send instead. */
@@ -30,8 +30,12 @@ export interface VoiceConfig {
   cache: string;
   /** The ElevenLabs voice, by name: one of the account's voices, else found in the voice library and added. */
   voiceName: string;
+  /** The ElevenLabs voice's id, when it is known: used as is, with no lookup by name (ELEVENLABS_VOICE_ID). */
+  voiceId?: string;
   /** The ElevenLabs model. */
   model: string;
+  /** The speech-to-text model `check` transcribes the clips with. Default scribe_v1. */
+  transcriber: string;
   /** ElevenLabs voice settings; `speed` (0.7 to 1.2, default 1) is the starting pace, lowered per line as the ceiling needs. */
   settings: { stability: number; similarity_boost: number; style: number; use_speaker_boost: boolean; speed?: number };
   /**
@@ -55,7 +59,9 @@ export interface VoiceConfig {
 export const DEFAULTS: VoiceConfig = {
   cache: resolve(process.cwd(), '.voice-cache'),
   voiceName: process.env.ELEVENLABS_VOICE || 'James - Professional Male',
+  voiceId: process.env.ELEVENLABS_VOICE_ID || undefined,
   model: process.env.ELEVENLABS_MODEL || 'eleven_multilingual_v2',
+  transcriber: 'scribe_v1',
   // Measured on the first series: a steady read, a little expression, no drift between lines.
   settings: { stability: 0.55, similarity_boost: 0.75, style: 0.1, use_speaker_boost: true },
   maxWordsPerSecond: 3,
@@ -70,7 +76,7 @@ let config: VoiceConfig = { ...DEFAULTS };
 /** Set the project's voice: its cache, voice, model and `say` rules. Returns the config in force. */
 export function configure(partial: Partial<VoiceConfig> = {}): VoiceConfig {
   config = { ...DEFAULTS, ...partial, say: partial.say ?? [] };
-  voiceId = null;
+  resolvedVoice = null;
   return config;
 }
 
@@ -82,7 +88,8 @@ export const asSent = (text: string) => config.say.reduce((t, [re, to]) => t.rep
 /**
  * The caption as it is read aloud when the line has no spoken text of its
  * own: symbols in words. Arrows become "then", keyboard chords are spelled
- * ("Control Shift F"), a bare "+" is "plus", "%" is "percent", "≥" is "at
+ * ("Control Shift F"), a bare "+" is "plus", a bare "×" is "the cross"
+ * (between numbers, "by": "1920 × 1080"), "%" is "percent", "≥" is "at
  * least", sparkles and "(K)" key hints are dropped, "…" becomes "..." (a
  * pause the voice honours).
  */
@@ -93,9 +100,9 @@ export function speakable(text: string) {
     .replace(/\s*\(([A-Z])\)/g, '')
     .replace(/Ctrl\+Shift\+(\w)/g, 'Control Shift $1')
     .replace(/Ctrl\+(\w)/g, 'Control $1')
-    .replace(/(^|\s)\+(\s)/g, '$1plus$2')
-    .replace(/with \+,/g, 'with plus,')
-    .replace(/with ×/g, 'with the cross')
+    .replace(/(^|\s)\+(?=[\s,.;:!?)]|$)/g, '$1plus')
+    .replace(/(\d)\s*×\s*(\d)/g, '$1 by $2')
+    .replace(/(^|\s)×(?=[\s,.;:!?)]|$)/g, '$1the cross')
     .replace(/(\d+)%/g, '$1 percent')
     .replace(/≥\s*/g, 'at least ')
     .replace(/…/g, '...')
@@ -109,9 +116,23 @@ export const words = (text: string) => text.replace(/<break[^>]*\/>/g, ' ').spli
 const key = () => process.env.ELEVENLABS_API_KEY;
 export const voiceAvailable = () => !!key();
 
-/** Where a spoken text's clip is kept (a hash of the voice, the model and what is sent). */
-export const clipPath = (spoken: string, dry = false) =>
-  join(config.cache, `${createHash('sha1').update(`${config.voiceName}|${config.model}|${dry}|${asSent(spoken)}`).digest('hex').slice(0, 16)}.mp3`);
+/** An object's JSON with its keys sorted, so the same settings always hash the same. */
+const stable = (o: Record<string, unknown>) => JSON.stringify(Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined).sort(([a], [b]) => a.localeCompare(b))));
+
+/**
+ * Where a spoken text's clip is kept: a hash of the voice, the model, the
+ * voice settings and what is sent. Settings left at the defaults add
+ * nothing to the hash, so the clips made before the settings were part of
+ * it are still found; changed settings make new clips (an earlier version
+ * left them out, and a change of stability or speed got the old clips).
+ */
+export const clipPath = (spoken: string, dry = false) => {
+  // Speed 1 is the voice's own pace, as if unset.
+  const settings = stable({ ...config.settings, speed: config.settings.speed === 1 ? undefined : config.settings.speed });
+  const voice = config.voiceId ? `id:${config.voiceId}` : config.voiceName;
+  const key = `${voice}|${config.model}|${dry}|${asSent(spoken)}${settings === stable(DEFAULTS.settings) ? '' : `|${settings}`}`;
+  return join(config.cache, `${createHash('sha1').update(key).digest('hex').slice(0, 16)}.mp3`);
+};
 
 /** A media file's length in seconds (ffprobe). */
 export const seconds = (file: string) => Number(execFileSync(config.ffprobe, ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', file]).toString().trim());
@@ -130,9 +151,11 @@ export const pace = (file: string, spoken: string) => saidWords(asSent(spoken)).
 export const slower = (p: number, max: number, speed: number) =>
   Math.max(0.7, Math.min(1.2, Math.round(speed * (max / p) * 0.96 * 100) / 100));
 
-async function api(path: string, init: RequestInit & { body?: string } = {}): Promise<Response> {
+async function api(path: string, init: RequestInit = {}): Promise<Response> {
   for (let attempt = 0; ; attempt++) {
-    const res = await fetch(`${config.api}${path}`, { ...init, headers: { 'xi-api-key': key() ?? '', ...(init.body ? { 'Content-Type': 'application/json' } : {}), ...(init.headers as Record<string, string> | undefined) } });
+    // A JSON body is a string; a form (a clip to transcribe) sets its own type.
+    const json: Record<string, string> = typeof init.body === 'string' ? { 'Content-Type': 'application/json' } : {};
+    const res = await fetch(`${config.api}${path}`, { ...init, headers: { 'xi-api-key': key() ?? '', ...json, ...(init.headers as Record<string, string> | undefined) } });
     if (res.ok) return res;
     // Busy or rate-limited: wait and try again, a few times.
     if ((res.status === 429 || res.status >= 500) && attempt < 4) { await new Promise(r => setTimeout(r, 2000 * 2 ** attempt)); continue; }
@@ -142,21 +165,29 @@ async function api(path: string, init: RequestInit & { body?: string } = {}): Pr
 
 interface VoiceRow { voice_id: string; name: string; public_owner_id?: string }
 
-let voiceId: string | null = null;
-/** The voice's id: one of the account's voices, else found in the library and added to them. */
+let resolvedVoice: string | null = null;
+/**
+ * The voice's id: `voiceId` when it is set, else the account's voice of
+ * that name (any case), else the library's, added to the account under its
+ * own name (so the next lookup finds it in the account).
+ */
 async function voice(): Promise<string> {
-  if (voiceId) return voiceId;
+  if (config.voiceId) return config.voiceId;
+  if (resolvedVoice) return resolvedVoice;
   const wanted = config.voiceName.toLowerCase();
   const mine: VoiceRow[] = ((await (await api('/v1/voices')).json()) as { voices?: VoiceRow[] }).voices ?? [];
-  const own = mine.find(v => v.name.toLowerCase() === wanted) ?? mine.find(v => v.name.toLowerCase().startsWith(wanted.split(' - ')[0]) && v.name.toLowerCase().includes('professional'));
-  if (own) return (voiceId = own.voice_id);
+  const own = mine.find(v => v.name.toLowerCase() === wanted);
+  if (own) return (resolvedVoice = own.voice_id);
   const query = encodeURIComponent(config.voiceName.split(' - ')[0]);
   const shared: VoiceRow[] = ((await (await api(`/v1/shared-voices?page_size=100&search=${query}`)).json()) as { voices?: VoiceRow[] }).voices ?? [];
   const found = shared.find(v => v.name.toLowerCase() === wanted);
-  if (!found) throw new Error(`No voice named "${config.voiceName}" in the account or the voice library. Close matches: ${shared.slice(0, 8).map(v => v.name).join(', ')}`);
+  if (!found) {
+    const near = (rows: VoiceRow[]) => rows.filter(v => v.name.toLowerCase().includes(wanted.split(' - ')[0])).slice(0, 8).map(v => v.name).join(', ') || 'none';
+    throw new Error(`No voice named "${config.voiceName}" in the account or the voice library. In the account: ${near(mine)}. In the library: ${near(shared)}. Set voiceName to one of them, or voiceId (ELEVENLABS_VOICE_ID) to the voice's id.`);
+  }
   const added = (await (await api(`/v1/voices/add/${found.public_owner_id}/${found.voice_id}`, { method: 'POST', body: JSON.stringify({ new_name: found.name }) })).json()) as { voice_id: string };
   console.log(`Added "${found.name}" to the account's voices.`);
-  return (voiceId = added.voice_id);
+  return (resolvedVoice = added.voice_id);
 }
 
 /** A spoken text's clip, made once and kept in the cache; `dry` makes a quiet tone as long as the line takes at 150 words a minute. */
@@ -199,14 +230,16 @@ export async function clip(spoken: string, { dry = false, log = true } = {}): Pr
   }
 }
 
-/** Transcribe a clip with ElevenLabs Scribe: what the voice was heard to say. */
+/**
+ * Transcribe a clip with ElevenLabs Scribe: what the voice was heard to
+ * say. Busy or rate-limited, it waits and tries again like every other
+ * call (an earlier version stopped a whole series' check on one 429).
+ */
 export async function transcribe(file: string): Promise<string> {
-  const { readFileSync } = await import('node:fs');
   const form = new FormData();
-  form.append('model_id', 'scribe_v1');
+  form.append('model_id', config.transcriber);
   form.append('file', new Blob([readFileSync(file)], { type: 'audio/mpeg' }), 'clip.mp3');
-  const res = await fetch(`${config.api}/v1/speech-to-text`, { method: 'POST', headers: { 'xi-api-key': key() ?? '' }, body: form });
-  if (!res.ok) throw new Error(`Scribe: ${res.status} ${(await res.text()).slice(0, 200)}`);
+  const res = await api('/v1/speech-to-text', { method: 'POST', body: form });
   return ((await res.json()) as { text: string }).text;
 }
 
@@ -217,7 +250,10 @@ export interface Placed { file: string; at: number }
  * the result over the video. Warns about a clip that runs into the next.
  */
 export function mix(video: string, clips: Placed[], opts: { crf?: number } = {}) {
+  // No lines, nothing to lay over the picture (ffmpeg's amix takes at least one input).
+  if (!clips.length) return;
   // The last line can outlast the picture (a still screen sends no frames): hold the last frame until it is said.
+  // Demo.save() already holds it in its one encode; this pads a video recorded without the voice.
   const end = Math.max(...clips.map(c => c.at / 1000 + seconds(c.file)));
   const short = end + 0.6 - seconds(video);
   if (short > 0) {
@@ -303,3 +339,31 @@ export function normalize(text: string, undo: SayRule[] = []): string[] {
   }
   return out;
 }
+
+/**
+ * What a transcript leaves out of its text and adds to it, word by word in
+ * order (the longest run the two share, then the rest): a word said twice
+ * and heard once is missing once, a word heard that was not sent is extra.
+ * Both lists come from `normalize`d words. Pure, for the test.
+ */
+export function diffWords(want: string[], got: string[]): { missing: string[]; extra: string[] } {
+  const n = want.length, m = got.length;
+  // lcs[i][j]: the longest common run of want[i..] and got[j..].
+  const lcs = Array.from({ length: n + 1 }, () => new Array<number>(m + 1).fill(0));
+  for (let i = n - 1; i >= 0; i--) for (let j = m - 1; j >= 0; j--) {
+    lcs[i][j] = want[i] === got[j] ? lcs[i + 1][j + 1] + 1 : Math.max(lcs[i + 1][j], lcs[i][j + 1]);
+  }
+  const missing: string[] = [], extra: string[] = [];
+  let i = 0, j = 0;
+  while (i < n && j < m) {
+    if (want[i] === got[j]) { i++; j++; }
+    else if (lcs[i + 1][j] >= lcs[i][j + 1]) missing.push(want[i++]);
+    else extra.push(got[j++]);
+  }
+  missing.push(...want.slice(i));
+  extra.push(...got.slice(j));
+  return { missing, extra };
+}
+
+/** A transcript without its sound tags ("[outro jingle]", "(music)"): what was said, not what was heard around it. */
+export const withoutTags = (heard: string) => heard.replace(/\[[^\]]*\]|\([^)]*\)/g, ' ').replace(/\s+/g, ' ').trim();

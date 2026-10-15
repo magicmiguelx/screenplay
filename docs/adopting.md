@@ -89,6 +89,23 @@ slowest speed fails the take with the line named. Changing the ceiling
 remakes the clips over it on their next use, which changes their
 lengths: re-record the videos they are in.
 
+## The voice and its clips
+
+`voice.voiceName` is looked up in the account (any case), then in the
+voice library, where it is added to the account under its own name; a
+name found in neither fails with the near names in both. `voice.voiceId`
+(or `ELEVENLABS_VOICE_ID`) names the voice by id and skips the lookup.
+`voice.transcriber` is the speech-to-text model `check` uses (default
+`scribe_v1`).
+
+A clip is cached under a hash of the voice, the model, what is sent and
+the voice settings. Settings left at the defaults add nothing to the
+hash, so a project on the defaults keeps its cache; a change to
+`voice.settings` (stability, style, the starting speed) makes new clips
+on their next use, billed, with new lengths: re-record the videos. (Until
+October 2026 the settings were not in the hash and a change to them got
+the old clips; a project with its own settings remakes its clips once.)
+
 ## Where captions sit
 
 Nothing to configure: every caption is measured at the bottom and the
