@@ -5,7 +5,7 @@
 // draws no cursor, so the page gets one: a pointer that glides to each
 // control (a CSS transition, so it moves smoothly even while a
 // software-rendered scene runs at a few frames a second), a ring on each
-// click, a caption (bottom or top), a title card, a picture card and a
+// click, a caption (bottom or top, centred, or in a corner), a title card, a picture card and a
 // spotlight. Installed in every document the page loads
 // (page.addInitScript), so it survives a navigation.
 //
@@ -45,19 +45,22 @@ export interface OverlayOptions {
 export interface Rect { x: number; y: number; width: number; height: number }
 /** Where a caption would sit and what it would cover there. */
 export interface Placement { cover: number; box: Rect }
+/** A caption's position (place.ts `Where`; spelled out here, since the overlay imports nothing). */
+export type CaptionAt = 'bottom' | 'top' | 'bottom-left' | 'bottom-right' | 'top-left' | 'top-right';
 
 /** The overlay's API, on `window.__demo` once installed. */
 export interface OverlayApi {
   cursorTo(x: number, y: number, ms: number): void;
   press(x: number, y: number): void;
-  caption(text: string | null, top?: boolean): void;
+  /** Show a caption at a position (default the bottom; `true` is the top, as before corners), or take it down. */
+  caption(text: string | null, at?: CaptionAt | boolean): void;
   /**
    * The caption's cover at each position: the share of a grid of points
    * under its box that lands on the page's own content (text, controls,
    * pictures), 0 to 1; plus 1 where the box would sit over `avoid` (the
    * element, or elements, a line is about). Measures `text` without showing it.
    */
-  measure(text: string, avoid?: Rect | Rect[] | null): { bottom: Placement; top: Placement };
+  measure(text: string, avoid?: Rect | Rect[] | null): Record<CaptionAt, Placement>;
   card(kicker: string | null, title?: string, sub?: string): void;
   picture(src: string | null): void;
   spot(rect: { x: number; y: number; width: number; height: number } | null): void;
@@ -79,6 +82,9 @@ export function overlay(opts: OverlayOptions = {}) {
 @keyframes demo-ring { from { transform: scale(.35); opacity: 1; } to { transform: scale(1.25); opacity: 0; } }
 #demo-overlay .caption { position: absolute; left: 50%; bottom: 96px; transform: translateX(-50%); max-width: 74%; padding: 12px 22px; border-radius: 12px; background: rgba(9, 13, 22, .9); color: #f4f7fb; text-align: center; box-shadow: 0 8px 28px rgba(0,0,0,.45); border: 1px solid rgba(255,255,255,.12); opacity: 0; transition: opacity .3s; z-index: 2; }
 #demo-overlay .caption.top { bottom: auto; top: 64px; }
+#demo-overlay .caption.left, #demo-overlay .caption.right { transform: none; max-width: 42%; text-align: left; }
+#demo-overlay .caption.left { left: 32px; }
+#demo-overlay .caption.right { left: auto; right: 32px; }
 #demo-overlay .caption.on { opacity: 1; }
 #demo-overlay .card { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; background: radial-gradient(ellipse at 50% 40%, rgba(22, 34, 58, .94), rgba(6, 9, 16, .97)); color: #fff; opacity: 0; transition: opacity .45s; text-align: center; padding: 0 12%; z-index: 3; }
 #demo-overlay .card.on { opacity: 1; }
@@ -118,6 +124,12 @@ ${opts.css ?? ''}`;
     }
   };
   const $ = (sel: string) => { install(); return document.querySelector(`#demo-overlay ${sel}`) as HTMLElement; };
+  const place = (c: HTMLElement, at: string) => {
+    c.classList.toggle('top', at.startsWith('top'));
+    c.classList.toggle('left', at.endsWith('left'));
+    c.classList.toggle('right', at.endsWith('right'));
+  };
+  const placed = (c: HTMLElement) => `${c.classList.contains('top') ? 'top' : 'bottom'}${c.classList.contains('left') ? '-left' : c.classList.contains('right') ? '-right' : ''}`;
   w.__demo = {
     cursorTo(x, y, ms) {
       const c = $('.cursor');
@@ -132,14 +144,14 @@ ${opts.css ?? ''}`;
       void r.offsetWidth;
       r.classList.add('on');
     },
-    caption(text, top = false) {
+    caption(text, at = 'bottom') {
       const c = $('.caption');
-      if (text) { c.textContent = text; c.classList.toggle('top', top); }
+      if (text) { c.textContent = text; place(c, at === true ? 'top' : at === false ? 'bottom' : at); }
       c.classList.toggle('on', !!text);
     },
     measure(text, avoid = null) {
       const c = $('.caption');
-      const was = { text: c.textContent, top: c.classList.contains('top') };
+      const was = { text: c.textContent, at: placed(c) };
       c.textContent = text;
       // What a point is on: the page's own content (text, a control, a picture), or a bare surface.
       const content = (el: Element) => {
@@ -172,13 +184,14 @@ ${opts.css ?? ''}`;
         return r.width * r.height ? (w * h) / (r.width * r.height) : 0;
       };
       // Under a spotlight the rest of the page is dimmed too: the lit element is what matters, and `avoid` names it.
-      const at = (top: boolean) => {
-        c.classList.toggle('top', top);
+      const at = (where: CaptionAt) => {
+        place(c, where);
         const r = c.getBoundingClientRect();
         return { cover: (picture ? onPicture(r) : cover(r)) + (over(r) ? 1 : 0), box: { x: r.left, y: r.top, width: r.width, height: r.height } };
       };
-      const out = { bottom: at(false), top: at(true) };
-      c.classList.toggle('top', was.top);
+      const all: CaptionAt[] = ['bottom', 'top', 'bottom-left', 'bottom-right', 'top-left', 'top-right'];
+      const out = Object.fromEntries(all.map(w => [w, at(w)])) as Record<CaptionAt, Placement>;
+      place(c, was.at);
       c.textContent = was.text;
       return out;
     },

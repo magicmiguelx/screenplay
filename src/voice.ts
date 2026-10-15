@@ -252,8 +252,10 @@ export interface Placed { file: string; at: number }
 export function mix(video: string, clips: Placed[], opts: { crf?: number } = {}) {
   // No lines, nothing to lay over the picture (ffmpeg's amix takes at least one input).
   if (!clips.length) return;
-  // The last line can outlast the picture (a still screen sends no frames): hold the last frame until it is said.
-  // Demo.save() already holds it in its one encode; this pads a video recorded without the voice.
+  // The last line can outlast the picture: hold the last frame until it is said. A voiced take never
+  // needs it (Demo.save() waits for the last line, and the last frame is held to the end); a video
+  // recorded with shorter lengths than its clips, then mixed by the CLI, does, at the cost of a
+  // second encode, which is said.
   const end = Math.max(...clips.map(c => c.at / 1000 + seconds(c.file)));
   const short = end + 0.6 - seconds(video);
   if (short > 0) {
@@ -263,6 +265,7 @@ export function mix(video: string, clips: Placed[], opts: { crf?: number } = {})
       '-c:v', 'libx264', '-preset', 'slow', '-crf', String(opts.crf ?? 25), '-tune', 'stillimage', '-pix_fmt', 'yuv420p', '-an', '-movflags', '+faststart', held,
     ]);
     renameSync(held, video);
+    console.log(`  ${video.split('/').at(-1)}: the last frame held ${short.toFixed(1)} s more for the last line (the video encoded again).`);
   }
   const length = seconds(video);
   clips.forEach((c, i) => {

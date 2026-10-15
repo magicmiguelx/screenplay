@@ -85,7 +85,8 @@ later kit change can be ported.
 fastest a line may be spoken. The kit measures every clip as it is made
 and remakes a faster one at a lower voice speed (`voice.settings.speed`
 is where it starts, default 1); a line that is still too fast at the
-slowest speed fails the take with the line named. Changing the ceiling
+slowest speed fails the take with the line named (the take runs on and
+`save()` lists every such line at once). Changing the ceiling
 remakes the clips over it on their next use, which changes their
 lengths: re-record the videos they are in.
 
@@ -111,7 +112,9 @@ the old clips; a project with its own settings remakes its clips once.)
 Nothing to configure: every caption is measured at the bottom and the
 top of the frame and drawn where it covers the least of the page's own
 content, and it moves off the element the line then clicks or
-spotlights. A line can insist with `top: true` or `bottom: true` (the
+spotlights. When both are busy (over `coverNote`, or `maxCover` when
+lower) a clearly emptier corner is taken, narrower; `new Demo(page, {
+corners: false })` keeps captions centred. A line can insist with `top: true` or `bottom: true` (the
 phone layout wants `top`). The script's "Over" column records each
 line's position and cover; `new Demo(page, { maxCover: 0.6 })` fails a
 take on a line over it, `coverNote` sets the level the log lists.

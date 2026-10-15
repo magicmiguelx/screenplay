@@ -84,7 +84,12 @@ form to work through while you do.
   at the top (a grid of points, each asked what it lands on: the page's
   text, a control or a picture counts, a bare surface does not) and the
   driver takes the emptier position, with a tie to the bottom; a line
-  may still ask for `top` or `bottom`. The caption also keeps off the
+  may still ask for `top` or `bottom`. When both are over `coverNote`
+  (or `maxCover`, when lower), the four corners are measured too, at a
+  narrower width, and a corner clearly emptier is taken: a page busy
+  across its middle, top and bottom (a centred table, a toolbar in both
+  bands) usually has one clear (`corners: false` keeps the caption
+  centred). The caption also keeps off the
   element the line clicks, types into or spotlights, before or after it
   is placed; under a picture card only the picture counts, the page
   being dimmed away beneath it. Each line's
@@ -139,7 +144,10 @@ form to work through while you do.
   line still too fast at the slowest speed fails the take, named, so it
   gets fewer words (a written pause does not buy time: measured in
   `docs/writing-for-the-ear.md`, section 2). `voiceover check` prints
-  each video's fastest line against the ceiling. Run `voiceover speak`
+  each video's fastest line against the ceiling. A voiced take does not
+  stop at the first line over the ceiling: it gives the line the room it
+  would take at the ceiling, goes on, and fails at `save()` with every
+  such line listed, so one take finds them all. Run `voiceover speak`
   before re-recording a series under a new ceiling: it lists every line
   that cannot fit at once (five of Plenoview's 293), so the rewrites are
   made before the first take, not one failed take at a time.

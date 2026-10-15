@@ -7,7 +7,7 @@ import { Recorder, VIDEO, type RecorderOptions, type Size } from './recorder.js'
 import { writeScript, type ScriptLine } from './script.js';
 import { Subjects } from './subjects.js';
 import { bringIntoView, inView } from './view.js';
-import { clip, clipPath, mix, seconds, speakable, voiceAvailable } from './voice.js';
+import { asSent, clip, clipPath, mix, saidWords, seconds, speakable, voiceAvailable, voiceConfig } from './voice.js';
 
 // The driver: a person driving the app on camera. The overlay's cursor goes
 // first, then the real mouse acts; every line is shown as a caption or a
@@ -63,6 +63,13 @@ export interface DemoOptions {
   maxCover?: number;
   coverNote?: number;
   /**
+   * Let a caption go to a corner when both centred positions cover more
+   * than the line may (`coverNote`, or `maxCover` when lower) and a corner
+   * covers clearly less. Default true; the centred positions are always
+   * tried first, so a page with room top or bottom looks as before.
+   */
+  corners?: boolean;
+  /**
    * The least of a line's subject that must be in the picture while the
    * line is up, as a share of it (0 to 1; `view.ts` says how a share is
    * measured): the elements given as its `about`, the element in the
@@ -91,6 +98,8 @@ export class Demo {
   /** Everything said on screen, for the voice-over script. */
   private lines: Line[] = [];
   private open: Line | null = null;
+  /** The lines the voice could not say under its speed limit, failed at save(). */
+  private tooFast: string[] = [];
   /** Each spoken text's length, from the durations file and the clips made so far. */
   private spoken: Record<string, number> = {};
   private readonly durationsFile: string | undefined;
@@ -101,6 +110,7 @@ export class Demo {
   private caption: { text: string; prefer: Prefer; at: Where; box: Rect } | null = null;
   private readonly maxCover?: number;
   private readonly coverNote: number;
+  private readonly corners: boolean;
   private readonly minInView?: number;
   private readonly inViewNote: number;
   /** A picture card is up: the page behind it is not what a line is about. */
@@ -117,6 +127,7 @@ export class Demo {
     this.durationsFile = opts.durationsFile;
     this.maxCover = opts.maxCover;
     this.coverNote = opts.coverNote ?? 0.5;
+    this.corners = opts.corners ?? true;
     this.minInView = opts.minInView;
     this.inViewNote = opts.inViewNote ?? 0.95;
     this.subjectsOf = new Subjects<Locator>({ min: this.minInView, note: this.inViewNote, grace: FIRST_ACTION_GRACE_MS });
@@ -179,9 +190,20 @@ export class Demo {
       // (to be drawn as a still) got a second of live frames before it.
       const cut = !existsSync(clipPath(said)) && !this.rec.paused;
       if (cut) this.rec.pause();
-      const file = await clip(said, { log: false });
-      if (cut) this.rec.resume();
-      this.spoken[said] = Math.round(seconds(file) * 100) / 100;
+      try {
+        const file = await clip(said, { log: false });
+        this.spoken[said] = Math.round(seconds(file) * 100) / 100;
+      } catch (e) {
+        if (!(e instanceof Error) || !e.message.startsWith('Spoken too fast')) throw e;
+        // A line over the speed limit is listed and the take goes on, given the room the line would
+        // take at the limit: save() fails with every such line, so they are all rewritten at once
+        // rather than one take each (the CLI's `speak` does the same over finished scripts).
+        this.tooFast.push(e.message);
+        console.log(`  ${e.message}`);
+        this.spoken[said] = Math.round((saidWords(asSent(said)).length / voiceConfig().maxWordsPerSecond) * 100) / 100;
+      } finally {
+        if (cut) this.rec.resume();
+      }
     }
     return said;
   }
@@ -412,10 +434,12 @@ export class Demo {
       if (!d) throw new Error('The overlay is not in this document: call Demo.prepare(page) before the first navigation.');
       return d.measure(t, a);
     }, [text, avoid] as const);
-    const at = choosePlacement({ bottom: covers.bottom.cover, top: covers.top.cover }, prefer);
+    const shares = Object.fromEntries(Object.entries(covers).map(([w, p]) => [w, p.cover])) as Record<Where, number>;
+    const corners = this.corners ? Math.min(this.coverNote, this.maxCover ?? 1) : undefined;
+    const at = choosePlacement(shares, prefer, { corners });
     const cover = covers[at].cover;
     this.caption = { text, prefer, at, box: covers[at].box };
-    await this.ui('caption', text, at === 'top');
+    await this.ui('caption', text, at);
     this.pendingCover = { at, cover };
     if (this.maxCover !== undefined && cover > this.maxCover) {
       throw new Error(`Caption over content: ${Math.round(Math.min(1, cover) * 100)}% of its box at the ${at}${cover > 1 ? ', on the element the line acts on' : ''} (bottom ${Math.round(Math.min(1, covers.bottom.cover) * 100)}%, top ${Math.round(Math.min(1, covers.top.cover) * 100)}%), over ${this.maxCover}: move it, or clear the screen under it: "${text}"`);
@@ -646,17 +670,13 @@ export class Demo {
     await this.waitSpeech();
     this.logCaption(null);
     this.subjectsOf.commit();
+    if (this.tooFast.length) {
+      this.rec.dispose();
+      throw new Error(`${this.tooFast.length} line${this.tooFast.length === 1 ? '' : 's'} the voice cannot say under its speed limit; give each a pause or fewer words, then record again:\n${this.tooFast.join('\n')}`);
+    }
     mkdirSync(dirname(out), { recursive: true });
     const end = Date.now() / 1000;
-    // The last frame is held until the last clip is said, in the one encode: left to mix(), the
-    // whole video was encoded a second time to pad it (a second lossy pass over every frame).
-    let tail = 0.6;
-    if (this.voiced) {
-      const length = this.rec.videoTime(end);
-      const said = Math.max(0, ...this.lines.map(l => this.rec.videoTime(l.from) + (this.spoken[l.voice] ?? 0)));
-      tail = Math.max(tail, said + 0.6 + 0.1 - length);
-    }
-    await this.rec.save(out, tail);
+    await this.rec.save(out);
     const lines: ScriptLine[] = this.lines.map(l => ({ kind: l.kind, text: l.text, voice: l.voice, start: this.rec.videoTime(l.from), end: this.rec.videoTime(l.to ?? end), ...(l.at ? { at: l.at, cover: l.cover } : {}), ...(l.seen !== undefined ? { seen: l.seen, subject: l.subject } : {}) }));
     const length = this.rec.videoTime(end);
     const busy = lines.filter(l => (l.cover ?? 0) > this.coverNote);

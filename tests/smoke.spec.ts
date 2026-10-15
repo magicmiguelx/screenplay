@@ -1,7 +1,9 @@
 import { expect, test } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { createServer, type Server } from 'node:http';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
 import { Demo, VIDEO, configure, inView } from '../src/index.js';
 
 // Records a short video of a small page, no voice (no key needed): the
@@ -164,4 +166,110 @@ test('what a line is about is in the picture, or the take fails', async ({ page 
   expect(existsSync(demo.rec.dir)).toBe(true);
   await page.close();
   expect(existsSync(demo.rec.dir)).toBe(false);
+});
+
+const BUSY_MIDDLE = `<!doctype html><html><head><style>
+  body { margin: 0; font: 18px system-ui; background: #10141c; color: #eee; }
+  .band { position: fixed; left: 34%; width: 32%; height: 130px; overflow: hidden; line-height: 1.2; word-break: break-all; }
+  #top { top: 40px; } #bottom { bottom: 60px; }
+</style></head><body>
+  <div class="band" id="top"></div><div class="band" id="bottom"></div>
+  <script>for (const b of document.querySelectorAll('.band')) b.textContent = 'cell'.repeat(400);</script>
+</body></html>`;
+
+test('a caption goes to a corner when the middle is busy top and bottom, unless corners are off', async ({ page }) => {
+  await Demo.prepare(page);
+  await page.route('https://smoke.test/**', r => r.fulfill({ status: 200, contentType: 'text/html', body: BUSY_MIDDLE }));
+  await page.goto('https://smoke.test/busy');
+  const caption = page.locator('#demo-overlay .caption');
+  const corners = new Demo(page, { voiced: false });
+  await corners.note('A short line.');
+  await expect(caption).toHaveClass(/left/);
+  const box = (await caption.boundingBox())!;
+  expect(box.x).toBeLessThan(VIDEO.width * 0.3);
+  // The covers of every position, as the driver sees them: the middle busy, the corners clear.
+  const covers = await page.evaluate(() => (window as unknown as { __demo: import('../src/overlay.js').OverlayApi }).__demo.measure('A short line.'));
+  expect(covers.bottom.cover).toBeGreaterThan(0.5);
+  expect(covers.top.cover).toBeGreaterThan(0.5);
+  expect(covers['bottom-left'].cover).toBeLessThan(0.1);
+  await corners.clearNote();
+  const centred = new Demo(page, { voiced: false, corners: false });
+  await centred.note('A short line.');
+  await expect(caption).not.toHaveClass(/left|right/);
+});
+
+// A stand-in for the voice service on this machine (voice.api), so the voiced path runs with no key and
+// no bill: a clip is a tone as long as its words take at 2.5 a second, or, for a line marked RUSHED,
+// half a second whatever it says (too fast at every speed).
+async function fakeVoice(): Promise<{ server: Server; api: string }> {
+  const server = createServer((req, res) => {
+    if (req.method === 'GET' && req.url?.startsWith('/v1/voices')) {
+      res.setHeader('Content-Type', 'application/json');
+      res.end(JSON.stringify({ voices: [{ voice_id: 'test', name: 'Test Voice' }] }));
+      return;
+    }
+    let body = '';
+    req.on('data', c => { body += c; });
+    req.on('end', () => {
+      const { text } = JSON.parse(body) as { text: string };
+      const secs = text.includes('RUSHED') ? 0.5 : Math.max(0.8, text.split(/\s+/).length / 2.5);
+      const mp3 = execFileSync('ffmpeg', ['-loglevel', 'error', '-f', 'lavfi', '-i', `sine=frequency=220:duration=${secs}`, '-c:a', 'libmp3lame', '-f', 'mp3', '-']);
+      res.setHeader('Content-Type', 'audio/mpeg');
+      res.end(mp3);
+    });
+  });
+  await new Promise<void>(done => server.listen(0, '127.0.0.1', done));
+  const port = (server.address() as { port: number }).port;
+  return { server, api: `http://127.0.0.1:${port}` };
+}
+
+test('voiced: the clips are mixed in one encode, and every line too fast is listed at the end of the take', async ({ page }) => {
+  const { server, api } = await fakeVoice();
+  const cache = mkdtempSync(join(tmpdir(), 'screenplay-voice-'));
+  try {
+    configure({ api, cache, voiceName: 'Test Voice' });
+    await Demo.prepare(page);
+    await page.route('https://smoke.test/**', r => r.fulfill({ status: 200, contentType: 'text/html', body: PAGE }));
+    await page.goto('https://smoke.test/voiced');
+    const durations = join(cache, 'voice.json');
+    const demo = new Demo(page, { voiced: true, durationsFile: durations });
+    await demo.start();
+    await demo.card('Voiced', 'A counter', 'Said by a stand-in voice.', 1500);
+    await demo.say('Add one counts up, and the count is shown in large type.', { keep: true });
+    await demo.click(page.locator('#add'), 300);
+    await demo.clearNote();
+    // The last line set and left: save() waits for it to be said, so the picture lasts as long as its clip.
+    await demo.note('That is the end of this short and fully voiced recording.');
+    const out = join(cache, 'voiced.mp4');
+    const said: string[] = [];
+    const log = console.log;
+    console.log = (...a: unknown[]) => { said.push(a.join(' ')); log(...a); };
+    const { length, lines } = await demo.save(out, join(cache, 'voiced'), { title: 'Voiced', spec: 'tests/smoke.spec.ts' }).finally(() => { console.log = log; });
+    // The mix had nothing to pad: a voiced take is never encoded twice.
+    expect(said.join('\n')).not.toContain('encoded again');
+    const probe = (what: string) => execFileSync('ffprobe', ['-v', 'error', '-show_entries', what, '-of', 'csv=p=0', out]).toString().trim();
+    expect(probe('stream=codec_type').split('\n').sort()).toEqual(['audio', 'video']);
+    const last = lines.at(-1)!;
+    const lastClip = 'That is the end of this short and fully voiced recording.'.split(' ').length / 2.5;
+    expect(Number(probe('format=duration'))).toBeGreaterThan(last.start + lastClip);
+    expect(length).toBeGreaterThan(5);
+    const kept = JSON.parse(readFileSync(durations, 'utf8')) as Record<string, number>;
+    expect(Object.keys(kept)).toHaveLength(3);
+
+    // Two lines over the speed limit in one take: the take goes on, and save() names both.
+    await page.goto('https://smoke.test/voiced');
+    const rushed = new Demo(page, { voiced: true });
+    await rushed.start();
+    await rushed.say('RUSHED one, with far too many words for half a second.', { ms: 500 });
+    await rushed.say('A line the voice can say.', { ms: 500 });
+    await rushed.say('RUSHED two, also with far too many words to fit in.', { ms: 500 });
+    const frames = rushed.rec.dir;
+    await expect(rushed.save(join(cache, 'rushed.mp4'), join(cache, 'rushed'), { title: 'Rushed', spec: 'tests/smoke.spec.ts' }))
+      .rejects.toThrow(/2 lines the voice cannot say under its speed limit[\s\S]*RUSHED one[\s\S]*RUSHED two/);
+    expect(existsSync(frames)).toBe(false);
+  } finally {
+    configure({});
+    server.close();
+    rmSync(cache, { recursive: true, force: true });
+  }
 });

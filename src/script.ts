@@ -1,5 +1,6 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, relative } from 'node:path';
+import type { Where } from './place.js';
 import { words } from './voice.js';
 
 // The voice-over script of a video, written beside it: the captions as
@@ -10,8 +11,8 @@ import { words } from './voice.js';
 /** One line of the script: a title card or a caption, what is spoken, and its span in the video (seconds). */
 export interface ScriptLine {
   kind: 'card' | 'caption'; text: string; voice: string; start: number; end: number;
-  /** A caption's place and what it covered there: the share of the page's content under its box, 0 to 1 (over 1: on the element the line is about). */
-  at?: 'bottom' | 'top'; cover?: number;
+  /** A caption's place (centred at the bottom or top, or a corner) and what it covered there: the share of the page's content under its box, 0 to 1 (over 1: on the element the line is about). */
+  at?: Where; cover?: number;
   /** The least share of what the line is about that was in the picture while it was up, 0 to 1, and which subject that was (view.ts). */
   seen?: number; subject?: string;
 }
@@ -63,7 +64,7 @@ export function markdown(lines: ScriptLine[], info: ScriptInfo) {
     'video: re-recording rewrites it. Times are from the start of the video; "Room" is how long the line is',
     'on screen, "Voice" how long it takes spoken. "Spoken" is the text sent to the voice when it differs',
     'from the caption: punctuation for its pauses, words placed so the voice reads them the right way.',
-    '"Over" is where the caption sat (top or bottom, the emptier of the two) and how much of the page\'s own',
+    '"Over" is where the caption sat (bottom or top, the emptier of the two, or a corner when both were busy) and how much of the page\'s own',
     'content was under its box there, as a share of the box; a card covers the whole frame by design.',
     '"Seen" is how much of what the line is about was in the picture while it was up (the least of its',
     'subjects: the elements it names, the spotlit one, the one its first action works on).',

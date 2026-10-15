@@ -47,12 +47,14 @@ time by the checklist below, and ticks it as it goes.
    - The voice has a speed limit: a line is spoken at no more than
      `maxWordsPerSecond` (default 3, 180 words a minute); a faster clip
      is made again slower, and one still too fast at the slowest speed
-     fails the take, named, to be given a pause or fewer words (the
+     fails the take (every such line named when the take is saved), to
+     be given a pause or fewer words (the
      owner's rule, 12 October 2026: the fast lines were heard as sped
      up).
    - A caption sits where it covers the least: the overlay measures the
      page's own content under its box at the bottom and the top and the
-     driver takes the emptier, moves it off anything the line then clicks
+     driver takes the emptier (a corner when both are busy and a corner
+     is clear), moves it off anything the line then clicks
      or spotlights, and logs the cover in the script's "Over" column;
      `maxCover` fails a take on a line over it (the owner's rule, 12
      October 2026: captions had covered what the line was about).
