@@ -78,9 +78,11 @@ test('a small page, recorded with captions, a card and the script files', async 
   demo.rec.pause();
   await demo.card('The end', 'That is the kit', 'Thanks for watching.', 0, undefined, { hold: true });
   await demo.still(1.5);
+  const frames = demo.rec.dir;
   const { length, lines } = await demo.save(resolve(OUT, 'smoke.mp4'), resolve(OUT, 'smoke'), { title: 'Smoke test', spec: 'tests/smoke.spec.ts', root: resolve(import.meta.dirname, '..') });
 
   expect(existsSync(resolve(OUT, 'smoke.mp4'))).toBe(true);
+  expect(existsSync(frames)).toBe(false);
   expect(existsSync(resolve(OUT, 'smoke.jpg'))).toBe(true);
   const probed = Number(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', resolve(OUT, 'smoke.mp4')]).toString().trim());
   expect(probed).toBeGreaterThan(8);
@@ -158,4 +160,8 @@ test('what a line is about is in the picture, or the take fails', async ({ page 
   await page.evaluate(() => window.scrollTo(0, 0));
   await demo.say('Then the button far below.', { ms: 1800 });
   await expect(demo.click(page.locator('#far'))).rejects.toThrow(/Subject out of the picture: 0% .*Then the button far below/);
+  // The failed take's frames go with its page (they were left in the temp folder, hundreds of MB a take).
+  expect(existsSync(demo.rec.dir)).toBe(true);
+  await page.close();
+  expect(existsSync(demo.rec.dir)).toBe(false);
 });

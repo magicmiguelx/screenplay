@@ -487,6 +487,13 @@ check is cheap next to a viewer noticing.
   committed beside the docs, for the owner; the videos and posters are
   committed where the app serves them (a same-origin file, no third-party
   player, no script in the guide page).
+- A take's frames are JPEGs in a temporary folder (`demo.rec.dir`)
+  until the video is encoded. A take that fails (and the rules fail takes
+  on purpose) leaves them behind unless they are removed: the recorder
+  removes them when the video is saved, when its page closes (the end of
+  the test, failed or not) and when the process exits; `demo.rec.dispose()`
+  removes them at once. A three-minute full-HD take is hundreds of
+  megabytes, and a session's disk is a fixed allowance.
 - One commit per re-recorded video, named for it, keeps the history
   readable and a bad take easy to revert.
 - A user-facing change the videos show re-records them. Say so in the

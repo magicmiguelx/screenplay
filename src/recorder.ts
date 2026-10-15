@@ -14,6 +14,22 @@ import { Timeline, type Frame } from './timeline.js';
 
 export type Size = { width: number; height: number };
 
+/**
+ * The frame folders of the recorders not yet saved or disposed: removed
+ * when the process exits, so a take that failed (a line too fast, a
+ * caption over content, a subject out of the picture) does not leave its
+ * frames behind. A three-minute take at full HD is hundreds of megabytes
+ * of JPEGs, and the take fails on purpose.
+ */
+const live = new Set<string>();
+let exitHook = false;
+function track(dir: string) {
+  live.add(dir);
+  if (exitHook) return;
+  exitHook = true;
+  process.once('exit', () => { for (const d of live) rmSync(d, { recursive: true, force: true }); });
+}
+
 /** Every video is laid out at this size (16:9; wide enough that an app's side panels stay pinned). */
 export const VIDEO: Size = { width: 1440, height: 810 };
 /**
@@ -48,7 +64,8 @@ export interface RecorderOptions {
 export class Recorder {
   private cdp: CDPSession | null = null;
   readonly timeline = new Timeline();
-  private dir: string;
+  /** Where the frames are kept until the video is encoded (removed on save(), dispose(), the page closing or the process exiting). */
+  readonly dir: string;
   private n = 0;
   private recording = false;
   /** While paused: when the picture stopped. */
@@ -72,7 +89,20 @@ export class Recorder {
     this.size = opts.size ?? VIDEO;
     this.opts = { quality: opts.quality ?? 92, fps: opts.fps ?? 30, crf: opts.crf ?? 25, ffmpeg: opts.ffmpeg ?? process.env.FFMPEG ?? 'ffmpeg' };
     this.dir = mkdtempSync(join(tmpdir(), opts.tmpPrefix ?? 'screenplay-'));
+    track(this.dir);
+    // The page closes when its test ends, failed or not: its frames go with it.
+    page.once('close', () => this.dispose());
   }
+
+  /** Stop the screencast and remove the frames; save() calls it once the video is encoded. Safe to call again. */
+  dispose() {
+    this.recording = false;
+    this.disposed = true;
+    void this.cdp?.send('Page.stopScreencast').catch(() => {});
+    rmSync(this.dir, { recursive: true, force: true });
+    live.delete(this.dir);
+  }
+  private disposed = false;
 
   get frames(): readonly Frame[] { return this.timeline.frames; }
 
@@ -94,7 +124,7 @@ export class Recorder {
   async start() {
     this.cdp = await this.page.context().newCDPSession(this.page);
     this.cdp.on('Page.screencastFrame', f => {
-      if (this.recording) {
+      if (this.recording && !this.disposed) {
         const file = this.nextFile();
         writeFileSync(file, Buffer.from(f.data, 'base64'));
         this.keep(file, f.metadata.timestamp ?? Date.now() / 1000);
@@ -102,7 +132,7 @@ export class Recorder {
       void this.cdp?.send('Page.screencastFrameAck', { sessionId: f.sessionId }).catch(() => {});
     });
     // A navigation (back from an external page) can end the screencast: start it again.
-    this.page.on('framenavigated', frame => { if (this.recording && frame === this.page.mainFrame()) void this.startCast().catch(() => {}); });
+    this.page.on('framenavigated', frame => { if (this.recording && !this.disposed && frame === this.page.mainFrame()) void this.startCast().catch(() => {}); });
     this.recording = true;
     this.startedAt = Date.now() / 1000;
     await this.startCast();
@@ -122,6 +152,7 @@ export class Recorder {
   }
 
   resume() {
+    if (this.disposed) return;
     const pausedAt = this.pausedAt;
     const drawn = this.drawnInPause;
     this.recording = true;
@@ -182,6 +213,7 @@ export class Recorder {
    * starts).
    */
   addFrame(data: Buffer, duration: number) {
+    if (this.disposed) throw new Error('addFrame() after the recorder was disposed.');
     if (this.recording || this.pausedAt === null) throw new Error('addFrame() needs the screencast paused.');
     const file = this.nextFile();
     writeFileSync(file, data);
@@ -200,6 +232,7 @@ export class Recorder {
    * until now: the video lasts as long as the recording did.
    */
   async save(out: string, tail = 0.6) {
+    if (this.disposed) throw new Error('save() after the recorder was disposed (its page closed).');
     const length = this.videoTime(Date.now() / 1000);
     this.recording = false;
     await this.cdp?.send('Page.stopScreencast').catch(() => {});
@@ -211,6 +244,6 @@ export class Recorder {
       '-vf', `fps=${this.opts.fps},scale=${this.size.width}:${this.size.height}:flags=lanczos,format=yuv420p`,
       '-c:v', 'libx264', '-preset', 'slow', '-crf', String(this.opts.crf), '-tune', 'stillimage', '-movflags', '+faststart', '-an', out,
     ]);
-    rmSync(this.dir, { recursive: true, force: true });
+    this.dispose();
   }
 }
