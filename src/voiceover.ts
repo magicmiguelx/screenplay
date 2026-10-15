@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // The voice-over without recording. Real API calls, billed to
-// ELEVENLABS_API_KEY: never in CI.
+// ELEVENLABS_API_KEY: never in CI (`cover` and `seen` make none).
 //
 // Recording with the key set already voices the videos: the driver makes
 // each line's clip as it goes, holds the caption for it and mixes the clips
@@ -15,6 +15,11 @@
 //   screenplay-voiceover check [name…]   each clip transcribed (ElevenLabs Scribe)
 //                                        and compared with what it should say:
 //                                        catches a word the voice says as something else
+//                                        (or adds one); fails when a line differs
+//   screenplay-voiceover cover [name…]   every caption's place and cover, from the scripts;
+//                                        fails on a line over --over (default 0.5)
+//   screenplay-voiceover seen [name…]    how much of each line's subject was in the
+//                                        picture; fails on a line under --under (default 0.9)
 //   --dry                                stand-in clips (a quiet tone as long as the
 //                                        line takes at 150 words a minute), no API
 //   --config <file>                      the project's config (default ./screenplay.config.mjs)
@@ -25,6 +30,7 @@
 import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { parseArgs } from 'node:util';
 import { asSent, clip, configure, mix, normalize, pace, seconds, speakable, transcribe, voiceAvailable, type SayRule, type VoiceConfig } from './voice.js';
 
 export interface ScreenplayConfig {
@@ -40,18 +46,31 @@ export interface ScreenplayConfig {
 }
 
 async function main() {
-  const args = process.argv.slice(2);
-  const dry = args.includes('--dry');
-  const at = args.indexOf('--config');
-  const configFile = resolve(at >= 0 ? args[at + 1] : 'screenplay.config.mjs');
-  const overAt = args.indexOf('--over');
-  const over = overAt >= 0 ? Number(args[overAt + 1]) : 0.5;
-  const underAt = args.indexOf('--under');
-  const under = underAt >= 0 ? Number(args[underAt + 1]) : 0.9;
-  const rest = args.filter((a, i) => a !== '--dry' && a !== '--config' && a !== '--over' && a !== '--under' && i !== at + 1 && i !== overAt + 1 && i !== underAt + 1);
-  const [command, ...names] = rest;
+  const usage = 'Usage: screenplay-voiceover speak|mix|check|cover|seen [name…] [--dry] [--config file] [--over 0.5] [--under 0.9]';
+  let parsed;
+  try {
+    parsed = parseArgs({
+      args: process.argv.slice(2),
+      allowPositionals: true,
+      options: { dry: { type: 'boolean' }, config: { type: 'string' }, over: { type: 'string' }, under: { type: 'string' } },
+    });
+  } catch (e) {
+    console.error(`${e instanceof Error ? e.message : e}\n${usage}`);
+    process.exit(1);
+  }
+  const { values, positionals } = parsed;
+  const dry = values.dry ?? false;
+  const configFile = resolve(values.config ?? 'screenplay.config.mjs');
+  const share = (flag: 'over' | 'under', fallback: number) => {
+    const v = values[flag] === undefined ? fallback : Number(values[flag]);
+    if (!(v >= 0 && v <= 1)) { console.error(`--${flag} takes a share from 0 to 1, not "${values[flag]}".\n${usage}`); process.exit(1); }
+    return v;
+  };
+  const over = share('over', 0.5);
+  const under = share('under', 0.9);
+  const [command, ...names] = positionals;
   if (!['speak', 'mix', 'check', 'cover', 'seen'].includes(command)) {
-    console.error('Usage: screenplay-voiceover speak|mix|check|cover|seen [name…] [--dry] [--config file] [--over 0.5] [--under 0.9]');
+    console.error(usage);
     process.exit(1);
   }
   if (!existsSync(configFile)) {
