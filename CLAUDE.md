@@ -96,6 +96,10 @@ time by the checklist below, and ticks it as it goes.
   real recording of a small page: Chromium and ffmpeg) before a push.
   The smoke test asserts the opening card's time and the video's length,
   which is what catches an overlay or timing regression.
+- CI (`.github/workflows/ci.yml`) runs the same three on every push,
+  with no voice key. A release projects should move to gets a version
+  bump in `package.json` and a `vX.Y.Z` tag pushed with it; projects pin
+  the tag (`docs/adopting.md`).
 - Docs are part of every change: a new option goes in the playbook or
   the adopting guide; a new rule goes in the playbook with its reason and
   in the history with its date.

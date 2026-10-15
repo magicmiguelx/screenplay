@@ -1,6 +1,6 @@
 {
   "name": "screenplay-kit",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Scripted, narrated product videos recorded from the app itself: a Playwright driver with a drawn cursor, captions and title cards, an ElevenLabs voice kept on the picture, and the playbook of what was learned making them.",
   "license": "MIT",
   "repository": "github:magicmiguelx/screenplay",

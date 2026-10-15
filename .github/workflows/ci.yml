@@ -1,0 +1,37 @@
+# The checks CLAUDE.md asks for before a push, on every push: the types,
+# the unit tests, and the smoke recording (Chromium and ffmpeg, a small
+# page recorded end to end; the voiced part runs against a stand-in voice
+# service on localhost). No voice key here, ever: nothing calls ElevenLabs.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: ffmpeg with libx264
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
+      - run: npm ci
+      - name: Chromium for Playwright
+        run: npx playwright install --with-deps chromium
+      - run: npm run typecheck
+      - run: npm run test:unit
+      - run: npm run test:smoke
+      - name: The smoke recording, to look at
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke
+          path: tests/out
+          if-no-files-found: ignore

@@ -24,8 +24,14 @@ with the steps below).
 script):
 
 ```sh
-npm install -D github:magicmiguelx/screenplay
+npm install -D github:magicmiguelx/screenplay#v0.2.0
 ```
+
+Pin a tag (the releases are tagged `vX.Y.Z`): without one the project
+follows `main`, and a recorder change there changes every video on the
+next install, when "a recorder change re-records all of them" should be a
+choice. Move the pin on purpose, read `docs/history.md` for what changed,
+and re-record when the recorder did.
 
 ```ts
 import { Demo, VIDEO, VIDEO_HD, configure } from 'screenplay-kit';
