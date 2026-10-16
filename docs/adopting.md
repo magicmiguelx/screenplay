@@ -38,6 +38,12 @@ import { Demo, VIDEO, VIDEO_HD, configure } from 'screenplay-kit';
 import { orbit } from 'screenplay-kit/three';
 ```
 
+**Installed for the recording only**: `npm i --no-save @playwright/test
+github:magicmiguelx/screenplay#v0.2.0` before a recording, with the spec
+in plain JavaScript (`.mjs`) outside the app's typecheck. Plenotrack
+records this way: its CI and its deploy install neither the kit nor
+Playwright, and the tag to install is written in the spec's header.
+
 **Copied in**: copy `src/` into the project's e2e folder (say
 `tests/e2e/screenplay/`) and import from there. Playwright transpiles
 TypeScript in the test tree, so nothing to build; the project owns the
