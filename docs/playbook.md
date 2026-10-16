@@ -497,7 +497,10 @@ The full rules and the measurements are in
   was tried ("pre-ZENT" moved nothing; it takes no phoneme tags). "Present
   the tour" is a verb and comes out right.
 - **Fix brand words and acronyms once, for every line** (`say` rules):
-  "Plenoview" was heard as "plane of view" and is sent as "Plen-oh-view";
+  "Plenoview" was heard as "plane of view" and is sent as "Plen-oh-view",
+  and "Plenotrack" as "PlanarTrack", "Plenatrac" and "Plentitrack" until it
+  was sent as "Plen-oh-track" (heard then as "Pleno track", the
+  transcriber's own spelling, put back by an `undo` rule);
   "SAP" as a word, sent "S-A-P"; "SOW" as "so", sent "statement of work";
   "Open AI" was heard as "OpenAI" and the line now says "the AI button".
   Acronyms are spaced letters ("C S V", "U R Ls", "M S K"); numbers and
