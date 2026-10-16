@@ -152,6 +152,25 @@ export const pace = (file: string, spoken: string) => saidWords(asSent(spoken)).
 export const slower = (p: number, max: number, speed: number) =>
   Math.max(0.7, Math.min(1.2, Math.round(speed * (max / p) * 0.96 * 100) / 100));
 
+/** The slowest voice speed ElevenLabs takes. */
+export const SLOWEST = 0.7;
+/** The most clips made for one line under the ceiling. */
+export const TRIES = 6;
+
+/**
+ * The speed to make a clip again at, after try `attempt` (0 first) came out
+ * at `p` words a second with `speed`, or null when there is nothing left to
+ * try: the speed is already the slowest, or the tries are spent. Pure, for
+ * the test. An earlier version stopped after three tries, at 0.77 and 0.74,
+ * and called that the slowest speed (two of Plenoview's lines, 3.03 and
+ * 3.02 words a second, 16 October 2026).
+ */
+export function nextSpeed(p: number, max: number, speed: number, attempt: number): number | null {
+  // Over the ceiling, `slower` is always below `speed` (the step is under 0.96 of it) until the floor.
+  if (p <= max || attempt + 1 >= TRIES || speed <= SLOWEST) return null;
+  return slower(p, max, speed);
+}
+
 async function api(path: string, init: RequestInit = {}): Promise<Response> {
   for (let attempt = 0; ; attempt++) {
     // A JSON body is a string; a form (a clip to transcribe) sets its own type.
@@ -221,10 +240,11 @@ export async function clip(spoken: string, { dry = false, log = true } = {}): Pr
       if (log) console.log(`  ${seconds(file).toFixed(1)} s  ${p.toFixed(1)} w/s${speed !== 1 ? ` at speed ${speed}` : ''}  ${asSent(spoken)}`);
       return file;
     }
-    const next = slower(p, max, speed);
-    if (next >= speed || attempt >= 2) {
+    const next = nextSpeed(p, max, speed, attempt);
+    if (next === null) {
       unlinkSync(file);
-      throw new Error(`Spoken too fast: ${p.toFixed(2)} words a second at speed ${speed}, the ceiling is ${max}. Give the line a pause or fewer words: "${asSent(spoken)}"`);
+      const why = speed <= SLOWEST ? 'the slowest speed' : `${attempt + 1} tries`;
+      throw new Error(`Spoken too fast: ${p.toFixed(2)} words a second at speed ${speed} (${why}), the ceiling is ${max}. Give the line a pause or fewer words: "${asSent(spoken)}"`);
     }
     if (log) console.log(`  ${p.toFixed(1)} w/s at speed ${speed}, over ${max}: again at ${next}  ${asSent(spoken)}`);
     speed = next;

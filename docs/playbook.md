@@ -159,7 +159,9 @@ form to work through while you do.
   Nothing was sped up; that was the delivery. `maxWordsPerSecond`
   (default 3) is enforced where the clip is made: a faster clip is made
   again at a lower voice speed (ElevenLabs takes 0.7 to 1.2) until it
-  fits, a cached clip from before the rule is remade on first use, and a
+  fits, down to 0.7 and six clips at most (an earlier version stopped
+  after three, at 0.77, and called that the slowest), a cached clip from
+  before the rule is remade on first use, and a
   line still too fast at the slowest speed fails the take, named, so it
   gets fewer words (a written pause does not buy time: measured in
   `docs/writing-for-the-ear.md`, section 2). `voiceover check` prints
