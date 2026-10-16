@@ -280,13 +280,20 @@ const LATE_SCROLL = `<!doctype html><html><head><style>
   #panel button { display: block; margin: 10px; height: 42px; width: 180px; }
   #stuck { position: fixed; left: 400px; top: 2000px; }
   #count { position: fixed; left: 400px; top: 100px; font-size: 40px; }
+  #menu { position: fixed; left: 700px; top: 100px; width: 200px; height: 200px; overflow: auto; background: #223049; }
+  #menu div { height: 40px; line-height: 40px; padding: 0 10px; }
 </style></head><body>
   <div id="panel"></div><div id="count">0</div><button id="stuck">Out of reach</button>
+  <div id="menu"><div>One</div><div>Two</div><div>Three</div><div>Four</div><div>Five</div><div id="sixth">Six</div><div>Seven</div></div>
   <script>
     const panel = document.getElementById('panel');
     for (let i = 0; i < 60; i++) { const b = document.createElement('button'); b.textContent = 'Item ' + i; panel.appendChild(b); }
     panel.lastElementChild.id = 'last';
     panel.lastElementChild.onclick = () => { document.getElementById('count').textContent = '1'; };
+    // A menu whose list scrolls, closed by a click anywhere else (Plenoview's File menu over its scene).
+    const menu = document.getElementById('menu');
+    document.getElementById('sixth').onclick = () => { document.getElementById('count').textContent = 'menu'; };
+    document.addEventListener('click', e => { if (!menu.contains(e.target)) menu.style.display = 'none'; });
     // A busy page: a smooth scroll starts 400 ms after it is asked for (Plenoview's software-rendered scene).
     const scroll = Element.prototype.scrollIntoView;
     Element.prototype.scrollIntoView = function (o) { setTimeout(() => scroll.call(this, o), 400); };
@@ -298,6 +305,12 @@ test('a scroll that starts late is waited for, and an action outside the picture
   await page.route('https://smoke.test/**', r => r.fulfill({ status: 200, contentType: 'text/html', body: LATE_SCROLL }));
   await page.goto('https://smoke.test/late');
   const demo = new Demo(page, { voiced: false });
+  // An item in the frame but clipped by its menu's own scrolling list, the scroll late: the click lands
+  // on it (it used to land on the page behind the list, and that closed the menu). Clipped, it is not
+  // in view, though its box is in the frame (it read as wholly in view: the page's body was counted).
+  expect(await inView(page.locator('#sixth'))).toBe(0);
+  await demo.click(page.locator('#sixth'), 200);
+  await expect(page.locator('#count')).toHaveText('menu');
   // The last item of a scrolled panel, its scroll late: the click lands on it (it used to land below the frame).
   await demo.click(page.locator('#last'), 200);
   await expect(page.locator('#count')).toHaveText('1');

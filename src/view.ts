@@ -49,6 +49,20 @@ export function measureSeen(el: Element): Seen {
   const left = Math.max(0, r.left), right = Math.min(vw, r.right), top = Math.max(0, r.top), bottom = Math.min(vh, r.bottom);
   const w = Math.max(0, right - left), h = Math.max(0, bottom - top);
   let hit = 0, n = 0;
+  // A point outside a box between the element and what the point landed on, a box that clips what
+  // overflows it (a menu's scrolling list), is a point where the element is cut off: on its parent's
+  // box, but not seen there. An earlier version counted any box the element sits in, the page's body
+  // included, so an item clipped by its list read as wholly in view and was never scrolled to.
+  const clippedAt = (x: number, y: number, at: Element) => {
+    for (let p = el.parentElement; p && p !== at; p = p.parentElement) {
+      const s = getComputedStyle(p);
+      if (s.overflowX === 'visible' && s.overflowY === 'visible') continue;
+      const b = p.getBoundingClientRect();
+      const left = b.left + p.clientLeft, top = b.top + p.clientTop;
+      if (x < left || x > left + p.clientWidth || y < top || y > top + p.clientHeight) return true;
+    }
+    return false;
+  };
   if (w > 0 && h > 0) {
     const cols = 10, rows = 8;
     for (let i = 0; i < cols; i++) for (let j = 0; j < rows; j++) {
@@ -57,7 +71,7 @@ export function measureSeen(el: Element): Seen {
       const at = document.elementsFromPoint(x, y).find(e => !e.closest('#demo-overlay'));
       // On the element, inside it, or on a box it sits in (outside its painted shape: a clip-path, a
       // rounded corner); anything else on top there (a sticky header, a dialog) hides it.
-      if (at && (at === el || el.contains(at) || at.contains(el))) hit++;
+      if (at && (at === el || el.contains(at) || (at.contains(el) && !clippedAt(x, y, at)))) hit++;
     }
   }
   return { box: { x: r.left, y: r.top, width: r.width, height: r.height }, viewport: { width: vw, height: vh }, inside: w * h, hit: n ? hit / n : 0 };
@@ -103,14 +117,16 @@ export async function bringIntoView(target: Locator, opts: { smooth?: boolean } 
     const behavior = (smooth ? 'smooth' : 'instant') as ScrollBehavior;
     el.scrollIntoView({ block: r.height <= innerHeight * 0.8 ? 'center' : 'start', inline: 'nearest', behavior });
   }, smooth);
+  const from = await place(target);
   await scroll(opts.smooth !== false);
-  // A smooth scroll on a busy page can start late: it is waited for until the element is in the frame
-  // and still, and if it never arrives the element is put there at once. An earlier version took two
-  // equal readings 100 ms apart, before the scroll had begun, for the end of it: the box was measured
-  // where the element had been, and the click landed below the frame (Plenoview, 16 October 2026).
-  if (!(await settle(target, true))) {
+  // A smooth scroll on a busy page can start late: it is waited for until the element has moved, or is
+  // not clipped by the frame or by any box it scrolls in, and is still; if it never arrives the element
+  // is put there at once. An earlier version took two equal readings 100 ms apart, before the scroll had
+  // begun, for the end of it: the box was measured where the element had been, and the click landed
+  // below the frame, or on the scene behind a menu whose list clipped the item (Plenoview, 16 October 2026).
+  if (!(await settle(target, from.at))) {
     await scroll(false);
-    await settle(target, true);
+    await settle(target);
   }
   // A tall subject scrolled to the top lies under a sticky header: step it down until its top edge is its own.
   await target.evaluate(el => {
@@ -131,19 +147,39 @@ export async function bringIntoView(target: Locator, opts: { smooth?: boolean } 
 }
 
 /**
- * Wait until the element stops moving (a smooth scroll is over), at most
- * three seconds; with `inFrame`, until it has also come into the frame
- * (some of it inside the viewport), which a scroll that has not started yet
- * has not. Returns whether it settled.
+ * Where an element is (its top-left, rounded) and whether all of it is
+ * open to view: inside the viewport and inside every box it scrolls or is
+ * clipped in (a menu's list, a side panel).
  */
-async function settle(target: Locator, inFrame = false): Promise<boolean> {
+function place(target: Locator) {
+  return target.evaluate(el => {
+    const r = el.getBoundingClientRect();
+    const within = (b: { top: number; left: number; bottom: number; right: number }) =>
+      r.top >= b.top - 1 && r.bottom <= b.bottom + 1 && r.left >= b.left - 1 && r.right <= b.right + 1;
+    let open = within({ top: 0, left: 0, bottom: innerHeight, right: innerWidth });
+    for (let p = el.parentElement; open && p; p = p.parentElement) {
+      const s = getComputedStyle(p);
+      if (s.overflowX === 'visible' && s.overflowY === 'visible') continue;
+      const b = p.getBoundingClientRect();
+      const top = b.top + p.clientTop, left = b.left + p.clientLeft;
+      open = within({ top, left, bottom: top + p.clientHeight, right: left + p.clientWidth });
+    }
+    return { at: `${Math.round(r.top)},${Math.round(r.left)}`, open };
+  });
+}
+
+/**
+ * Wait until the element stops moving (a smooth scroll is over), at most
+ * three seconds. Given where it was when the scroll was asked for (`from`),
+ * also until the scroll has arrived: the element has moved, or nothing
+ * clips it (a scroll that has not started yet has done neither). Returns
+ * whether it settled.
+ */
+async function settle(target: Locator, from?: string): Promise<boolean> {
   let last = '';
   for (let i = 0; i < 30; i++) {
-    const { at, inside } = await target.evaluate(el => {
-      const r = el.getBoundingClientRect();
-      return { at: `${Math.round(r.top)},${Math.round(r.left)}`, inside: r.bottom > 0 && r.top < innerHeight && r.right > 0 && r.left < innerWidth };
-    });
-    if (at === last && (inside || !inFrame)) return true;
+    const { at, open } = await place(target);
+    if (at === last && (from === undefined || at !== from || open)) return true;
     last = at;
     await target.page().waitForTimeout(100);
   }
