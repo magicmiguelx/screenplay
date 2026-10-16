@@ -45,6 +45,20 @@ form to work through while you do.
   camera), the app's own recorder making the page crawl (cut to its red
   note), and one line over six clicks (split where the picture
   changes).
+- **A project's own recorder is ported by its screenplay, not
+  rewritten.** Plenotrack's 26 videos were a catalogue (segments of
+  scenes, each a narration and what a small player object does while it
+  is said) played by a recorder of its own (Playwright's video, the voice
+  laid at each scene's wall-clock start). The port kept the catalogue,
+  its fixtures and its storyboard, and gave the player's moves to the
+  driver (`click`, `type`, `choose`, a spotlight held until the next
+  action or the end of the line); the old recorder's cards other than
+  the opening and closing ones stayed pages in the app's look, loaded
+  with `page.goto()`. What it could not carry over was the captions: the
+  old ones were the narration itself, forty words on a line, so every one
+  of 190 lines got a caption of three to nine words, the narration kept
+  as its `voice` (and as the `.vtt` the app's player offers, since that
+  is what is said). Only two of 235 lines were over the speed limit.
 - **No teasers for what has its own video.** When a feature got a video
   of its own, the mentions of it in earlier videos came out.
 - **Claim only what is measured.** The sales video makes AI a supporting
@@ -272,6 +286,19 @@ form to work through while you do.
   before its still). An app animation the screencast cannot keep up with
   (a timeline played) is shown as before and after, each drawn: a cut is
   what the screencast would have shown anyway.
+- **One page is one browser session.** A recorder that opens a fresh
+  context for each part of a video gets a new session each time; the kit
+  records one page, so what the app keeps for the session (Plenotrack's
+  Help screen, shown once a session at sign-in) shows in the first part
+  that lands there and never again. Set it in an init script for the
+  videos that are not about it, and leave it for the ones that are (the
+  first sign-in, the client's invitation).
+- **A phone screen in a landscape video is a picture.** The recorder has
+  one frame size; Plenotrack's inbox tutorial shows the phone layout for
+  one line by opening a second, phone-sized page of the same app and
+  state, acting on it off camera, and showing a screenshot of it after
+  each action as the picture card (`picture()`), the line's subject
+  `about: false`.
 - **The screencast restarts after a navigation.** Coming back from an
   external page can end it; the recorder starts it again on
   `framenavigated`.
@@ -289,7 +316,13 @@ form to work through while you do.
   first take, twenty frames into the orbit, after an edit to the app's
   strings; the failure screenshot showed the default diagram, which was
   the clue). Edit the docs, not the app, while a recording runs, or
-  record from a second checkout.
+  record from a second checkout. That goes for the spec too: Plenotrack's
+  first port wrote each video's length into the Help screen's list
+  (`src/lib/help-videos.json`) as the take ended, the dev server took the
+  change to a module it serves as a reason to reload, and the next take's
+  page reloaded under its question box (the asked question gone, the
+  answer waited for until the timeout). A take writes beside its script;
+  a step after the takes writes into the app.
 - **Vite's dependency optimizer is a reload too.** The first time a lazy
   chunk pulls in a package the dev server has not pre-bundled, Vite
   optimizes it and reloads the page: Plenoview's tour-video export
