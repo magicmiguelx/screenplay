@@ -83,7 +83,10 @@ is first fully in the picture against the moment its line starts:
    this for every video with a script and prints both ends against the
    lines (`node check-cards.mjs docs/demo-scripts public/guide/video
    public/promo`); a value in scientific notation (`6.7e-05`, the
-   heartbeat dot) is read as a number, not cut at the `e`.
+   heartbeat dot) is read as a number, not cut at the `e`. Each card is the
+   last fade that ends by its line's start; a "?" means no fade was
+   found at all (a card over a page as dark as itself changes too little
+   from one frame to the next): look at the frames.
 2. The voice's moment: the line's `start` in the `.json`, or, from the
    audio, the first non-silent moment after the previous line
    (`ffmpeg -i audio.mp3 -af silencedetect=n=-35dB:d=0.3 -f null -`).
