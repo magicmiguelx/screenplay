@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { DEFAULTS, asSent, configure, clipPath, diffWords, normalize, saidWords, slower, speakable, withoutTags, words } from '../../dist/voice.js';
+import { DEFAULTS, SLOWEST, asSent, configure, clipPath, diffWords, nextSpeed, normalize, saidWords, slower, speakable, withoutTags, words } from '../../dist/voice.js';
 
 test('speakable turns symbols into words', () => {
   assert.equal(speakable('File → Custom node types'), 'File, then Custom node types');
@@ -97,4 +97,14 @@ test('the check compares in order: a word left out, a word added, a word heard o
 test('sound tags are not what was said', () => {
   assert.equal(withoutTags('[outro jingle] Thanks for watching (music)'), 'Thanks for watching');
   assert.equal(withoutTags('[upbeat music]'), '');
+});
+
+test('a clip over the ceiling is made again slower until the slowest speed, not three tries', () => {
+  // Plenoview's lines: 3.03 words a second at 0.77 had 0.7 still to try.
+  assert.equal(nextSpeed(3.03, 3, 0.77, 2), 0.73);
+  assert.ok(nextSpeed(3.02, 3, 0.74, 2) <= 0.71);
+  // At the slowest speed, or under the ceiling, or out of tries: nothing left.
+  assert.equal(nextSpeed(3.5, 3, SLOWEST, 1), null);
+  assert.equal(nextSpeed(2.9, 3, 1, 0), null);
+  assert.equal(nextSpeed(3.5, 3, 0.9, 5), null);
 });

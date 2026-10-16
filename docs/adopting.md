@@ -24,7 +24,7 @@ with the steps below).
 script):
 
 ```sh
-npm install -D github:magicmiguelx/screenplay#v0.2.2
+npm install -D github:magicmiguelx/screenplay#v0.2.3
 ```
 
 Pin a tag (the releases are tagged `vX.Y.Z`): without one the project
@@ -39,7 +39,7 @@ import { orbit } from 'screenplay-kit/three';
 ```
 
 **Installed for the recording only**: `npm i --no-save @playwright/test
-github:magicmiguelx/screenplay#v0.2.2` before a recording, with the spec
+github:magicmiguelx/screenplay#v0.2.3` before a recording, with the spec
 in plain JavaScript (`.mjs`) outside the app's typecheck. Plenotrack
 records this way: its CI and its deploy install neither the kit nor
 Playwright, and the tag to install is written in the spec's header.

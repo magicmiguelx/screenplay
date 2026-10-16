@@ -32,6 +32,15 @@ Two sentences beat a semicolon. "Today... and the Target: where the plan
 says it should be." lands; the caption's "Today, and the Target." reads
 fine but is flat aloud.
 
+A "..." straight before "and" is a gamble on the word after it. In
+Plenoview's re-recording (16 October 2026) three of sixteen such lines
+had the "and" heard as something else, the same twice running, so in the
+clip and not the transcriber: "...and the sales dashboards" as "On the
+sales dashboards", "...and say" as "I won't say", "history... and sync"
+as "history in sync". The other thirteen were clean. Keep it where it
+earns the pause, run `check`, and give the ones it flags a comma, a full
+stop or a capital "And" instead.
+
 A written pause is heard, but it does not buy time against the speed
 limit (section 5). Measured on 12 October 2026: "One step at a time,
 with a caption for every step." took 4.2 s plain, 3.8 s with

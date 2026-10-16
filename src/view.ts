@@ -63,6 +63,13 @@ export function measureSeen(el: Element): Seen {
     }
     return false;
   };
+  // An element that takes no pointer events (a status line over a 3D scene) is skipped by
+  // elementsFromPoint, so it read as hidden wherever it was: for the measuring, it takes them.
+  const html = el as HTMLElement;
+  const passive = getComputedStyle(el).pointerEvents === 'none' && !!html.style;
+  const was = passive ? html.style.getPropertyValue('pointer-events') : '';
+  const priority = passive ? html.style.getPropertyPriority('pointer-events') : '';
+  if (passive) html.style.setProperty('pointer-events', 'auto', 'important');
   if (w > 0 && h > 0) {
     const cols = 10, rows = 8;
     for (let i = 0; i < cols; i++) for (let j = 0; j < rows; j++) {
@@ -73,6 +80,10 @@ export function measureSeen(el: Element): Seen {
       // rounded corner); anything else on top there (a sticky header, a dialog) hides it.
       if (at && (at === el || el.contains(at) || (at.contains(el) && !clippedAt(x, y, at)))) hit++;
     }
+  }
+  if (passive) {
+    if (was) html.style.setProperty('pointer-events', was, priority);
+    else html.style.removeProperty('pointer-events');
   }
   return { box: { x: r.left, y: r.top, width: r.width, height: r.height }, viewport: { width: vw, height: vh }, inside: w * h, hit: n ? hit / n : 0 };
 }
