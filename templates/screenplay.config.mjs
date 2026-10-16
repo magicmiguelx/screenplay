@@ -8,8 +8,8 @@ export default {
   // Where a script's video is: a folder, or a function of the script's name.
   videos: name => (name.startsWith('promo-') ? `public/promo/${name.slice(6)}.mp4` : `public/guide/video/${name}.mp4`),
   voice: {
-    // ELEVENLABS_VOICE and ELEVENLABS_MODEL in the environment override these.
-    voiceName: 'James - Professional Male',
+    // Set here, these win over ELEVENLABS_VOICE and ELEVENLABS_MODEL (used only when left out).
+    voiceName: 'James - Professional British Male',
     // Or the voice by id, no lookup by name (ELEVENLABS_VOICE_ID overrides it).
     // voiceId: '…',
     model: 'eleven_multilingual_v2',

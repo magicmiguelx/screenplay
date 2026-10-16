@@ -98,12 +98,14 @@ lengths: re-record the videos they are in.
 
 ## The voice and its clips
 
-`voice.voiceName` is looked up in the account (any case), then in the
+`voice.voiceName` (default "James - Professional British Male", the first
+series' voice) is looked up in the account (any case), then in the
 voice library, where it is added to the account under its own name; a
 name found in neither fails with the near names in both. `voice.voiceId`
 (or `ELEVENLABS_VOICE_ID`) names the voice by id and skips the lookup.
 `voice.transcriber` is the speech-to-text model `check` uses (default
-`scribe_v1`).
+`scribe_v1`). A value set in the config wins over `ELEVENLABS_VOICE` and
+`ELEVENLABS_MODEL`, which apply only when it is left out.
 
 A clip is cached under a hash of the voice, the model, what is sent and
 the voice settings. Settings left at the defaults add nothing to the

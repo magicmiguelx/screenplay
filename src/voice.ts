@@ -58,7 +58,8 @@ export interface VoiceConfig {
 
 export const DEFAULTS: VoiceConfig = {
   cache: resolve(process.cwd(), '.voice-cache'),
-  voiceName: process.env.ELEVENLABS_VOICE || 'James - Professional Male',
+  // The library's "James - Professional British Male" (lUTamkMw7gOzZbFIwmq4), the voice of the first series.
+  voiceName: process.env.ELEVENLABS_VOICE || 'James - Professional British Male',
   voiceId: process.env.ELEVENLABS_VOICE_ID || undefined,
   model: process.env.ELEVENLABS_MODEL || 'eleven_multilingual_v2',
   transcriber: 'scribe_v1',

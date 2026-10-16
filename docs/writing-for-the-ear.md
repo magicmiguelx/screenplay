@@ -3,7 +3,7 @@
 The caption is read; the voice is heard. They are two texts, and the
 second has rules the first does not. Everything here was measured on
 ElevenLabs `eleven_multilingual_v2` with the voice "James - Professional
-Male" (settings: stability 0.55, similarity 0.75, style 0.1, speaker
+British Male" (settings: stability 0.55, similarity 0.75, style 0.1, speaker
 boost on) across 236 lines; another voice or model may differ, so check
 (section 5) before trusting any of it.
 
