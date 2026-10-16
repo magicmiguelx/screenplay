@@ -89,7 +89,12 @@ form to work through while you do.
   narrower width, and a corner clearly emptier is taken: a page busy
   across its middle, top and bottom (a centred table, a toolbar in both
   bands) usually has one clear (`corners: false` keeps the caption
-  centred). The caption also keeps off the
+  centred). Not for an app whose picture is a canvas filling the frame
+  (a 3D scene): a canvas counts as content wherever the caption sits,
+  empty sky included, so the centred positions always read as busy and a
+  corner wins by sitting on a side panel; Plenoview's first take on the
+  kit put five of six captions in corners, one over the Layers panel.
+  Such an app keeps `corners: false`. The caption also keeps off the
   element the line clicks, types into or spotlights, before or after it
   is placed; under a picture card only the picture counts, the page
   being dimmed away beneath it. Each line's

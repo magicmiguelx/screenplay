@@ -122,7 +122,9 @@ top of the frame and drawn where it covers the least of the page's own
 content, and it moves off the element the line then clicks or
 spotlights. When both are busy (over `coverNote`, or `maxCover` when
 lower) a clearly emptier corner is taken, narrower; `new Demo(page, {
-corners: false })` keeps captions centred. A line can insist with `top: true` or `bottom: true` (the
+corners: false })` keeps captions centred, which an app drawn on a
+full-frame canvas (a 3D scene) wants: the canvas reads as content
+everywhere, so a corner would win by covering a side panel. A line can insist with `top: true` or `bottom: true` (the
 phone layout wants `top`). The script's "Over" column records each
 line's position and cover; `new Demo(page, { maxCover: 0.6 })` fails a
 take on a line over it, `coverNote` sets the level the log lists.
