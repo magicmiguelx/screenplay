@@ -392,6 +392,21 @@ form to work through while you do.
   PF1e Campaigner video sat twenty minutes on a text the page did not
   have. `actionTimeout: 30_000` in the project's Playwright config makes
   it a failure in half a minute, with the locator named in the error.
+- **A scroll is waited for until it has arrived.** On a busy page (a
+  software-rendered scene) a smooth scroll can start a few hundred
+  milliseconds after it is asked for. The driver once took two equal
+  readings of an element's place, before the scroll began, for the end
+  of it, measured the box where the element had been and clicked below
+  the frame; the next step waited for a panel the click never opened
+  (two of Plenoview's tutorials, thirty minutes each, 16 October 2026).
+  `bringIntoView` now waits until the element has moved or nothing clips
+  it (the frame, a menu's scrolling list) and it is still, and puts it
+  there at once if the scroll never comes; an action whose target's
+  middle is still outside the frame fails at once, named ("Not in the
+  picture"). A menu item clipped by its own list is not in view, though
+  its box is in the frame: the share once counted the page's body behind
+  it as the item, so a clipped item read as wholly seen and was never
+  scrolled to (and a "Seen" of 100% could be a line about a clipped item).
 - **A take that hangs is run again with `DEBUG=pw:api` and a
   `--timeout` cap,** and then with a small diagnostic spec that logs the
   page's console and state every few seconds. The phone tutorial hung
