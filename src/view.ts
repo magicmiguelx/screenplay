@@ -98,12 +98,20 @@ export async function bringIntoView(target: Locator, opts: { smooth?: boolean } 
     }, EDGE);
     if (clear) return 1;
   }
-  await target.evaluate((el, smooth) => {
+  const scroll = (smooth: boolean) => target.evaluate((el, smooth) => {
     const r = el.getBoundingClientRect();
     const behavior = (smooth ? 'smooth' : 'instant') as ScrollBehavior;
     el.scrollIntoView({ block: r.height <= innerHeight * 0.8 ? 'center' : 'start', inline: 'nearest', behavior });
-  }, opts.smooth !== false);
-  await settle(target);
+  }, smooth);
+  await scroll(opts.smooth !== false);
+  // A smooth scroll on a busy page can start late: it is waited for until the element is in the frame
+  // and still, and if it never arrives the element is put there at once. An earlier version took two
+  // equal readings 100 ms apart, before the scroll had begun, for the end of it: the box was measured
+  // where the element had been, and the click landed below the frame (Plenoview, 16 October 2026).
+  if (!(await settle(target, true))) {
+    await scroll(false);
+    await settle(target, true);
+  }
   // A tall subject scrolled to the top lies under a sticky header: step it down until its top edge is its own.
   await target.evaluate(el => {
     const r = el.getBoundingClientRect();
@@ -122,13 +130,22 @@ export async function bringIntoView(target: Locator, opts: { smooth?: boolean } 
   return inView(target);
 }
 
-/** Wait until the element stops moving (a smooth scroll is over), at most two seconds. */
-async function settle(target: Locator) {
+/**
+ * Wait until the element stops moving (a smooth scroll is over), at most
+ * three seconds; with `inFrame`, until it has also come into the frame
+ * (some of it inside the viewport), which a scroll that has not started yet
+ * has not. Returns whether it settled.
+ */
+async function settle(target: Locator, inFrame = false): Promise<boolean> {
   let last = '';
-  for (let i = 0; i < 20; i++) {
-    const now = await target.evaluate(el => { const r = el.getBoundingClientRect(); return `${Math.round(r.top)},${Math.round(r.left)}`; });
-    if (now === last) return;
-    last = now;
+  for (let i = 0; i < 30; i++) {
+    const { at, inside } = await target.evaluate(el => {
+      const r = el.getBoundingClientRect();
+      return { at: `${Math.round(r.top)},${Math.round(r.left)}`, inside: r.bottom > 0 && r.top < innerHeight && r.right > 0 && r.left < innerWidth };
+    });
+    if (at === last && (inside || !inFrame)) return true;
+    last = at;
     await target.page().waitForTimeout(100);
   }
+  return false;
 }

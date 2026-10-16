@@ -500,8 +500,15 @@ export class Demo {
     await bringIntoView(target);
     const box = await target.boundingBox();
     if (!box) throw new Error(`Not on screen: ${target}`);
+    // A point outside the frame is a click on nothing, and the step after it waits for what the click
+    // should have opened: fail here, named, rather than there, after the test's whole timeout.
+    const x = box.x + box.width / 2, y = box.y + box.height / 2;
+    const view = this.page.viewportSize() ?? this.layout;
+    if (x < 0 || y < 0 || x > view.width || y > view.height) {
+      throw new Error(`Not in the picture: ${target} has its middle at ${Math.round(x)}, ${Math.round(y)}, outside the ${view.width} × ${view.height} frame, after it was scrolled to.`);
+    }
     await this.keepClear(box);
-    return [box.x + box.width / 2, box.y + box.height / 2];
+    return [x, y];
   }
 
   async hover(target: Locator, pause = 400) {
