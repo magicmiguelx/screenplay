@@ -409,6 +409,10 @@ form to work through while you do.
   its box is in the frame: the share once counted the page's body behind
   it as the item, so a clipped item read as wholly seen and was never
   scrolled to (and a "Seen" of 100% could be a line about a clipped item).
+  An element that takes no pointer events (a status line laid over a 3D
+  scene) is invisible to the hit test, which found the scene under it
+  instead: Plenoview's lit "Positions are locked" line read 0%. The
+  measure lets it take them for the moment it is measured.
 - **A take that hangs is run again with `DEBUG=pw:api` and a
   `--timeout` cap,** and then with a small diagnostic spec that logs the
   page's console and state every few seconds. The phone tutorial hung

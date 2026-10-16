@@ -282,7 +282,10 @@ const LATE_SCROLL = `<!doctype html><html><head><style>
   #count { position: fixed; left: 400px; top: 100px; font-size: 40px; }
   #menu { position: fixed; left: 700px; top: 100px; width: 200px; height: 200px; overflow: auto; background: #223049; }
   #menu div { height: 40px; line-height: 40px; padding: 0 10px; }
+  #scene { position: fixed; left: 350px; top: 260px; width: 500px; height: 200px; background: #1b2230; }
+  #status { position: fixed; left: 400px; top: 300px; padding: 4px 10px; background: #223049; pointer-events: none; }
 </style></head><body>
+  <div id="scene"></div><div id="status">Positions are locked</div>
   <div id="panel"></div><div id="count">0</div><button id="stuck">Out of reach</button>
   <div id="menu"><div>One</div><div>Two</div><div>Three</div><div>Four</div><div>Five</div><div id="sixth">Six</div><div>Seven</div></div>
   <script>
@@ -309,6 +312,10 @@ test('a scroll that starts late is waited for, and an action outside the picture
   // on it (it used to land on the page behind the list, and that closed the menu). Clipped, it is not
   // in view, though its box is in the frame (it read as wholly in view: the page's body was counted).
   expect(await inView(page.locator('#sixth'))).toBe(0);
+  // A status line that takes no pointer events, over a scene (Plenoview's over its canvas), is in view
+  // (it read 0%: elementsFromPoint skips it and finds the scene), and keeps taking none.
+  expect(await inView(page.locator('#status'))).toBe(1);
+  expect(await page.locator('#status').evaluate(el => getComputedStyle(el).pointerEvents)).toBe('none');
   await demo.click(page.locator('#sixth'), 200);
   await expect(page.locator('#count')).toHaveText('menu');
   // The last item of a scrolled panel, its scroll late: the click lands on it (it used to land below the frame).
