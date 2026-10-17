@@ -340,6 +340,16 @@ form to work through while you do.
   (`grep -rhoE "import\('[^'.][^']*'\)" src`, and what those modules
   import) goes in the config's `optimizeDeps.include`, or the specs that
   load every chunk are run once before the first take.
+- **A dev server compiles a page on its first visit.** Next's `next dev`
+  in a fresh container took 4.3 s over a campaign's Party tab the first
+  time it was opened: a page a video opens on camera for the first time
+  is a still screen while it compiles, and a line said after its click
+  is said over the page before (PF1e Campaigner's video 9 held 3.5 s at
+  its new note on 16 October 2026, and failed its Seen check on the
+  Party tab the next day). Open the pages a video shows off camera before
+  `start()` (the project's `warm()`), or record against a production
+  build. A take that ran after others on the same server hides it: the
+  hold shows only on the first take in a fresh container.
 - **The dev server's own chrome is in every frame.** Next's dev-tools
   button sat in the corner of the first PF1e Campaigner take. Hide it
   in the project's init script (a style for `nextjs-portal`), not in
