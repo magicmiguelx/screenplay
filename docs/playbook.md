@@ -475,8 +475,15 @@ The one lesson that cost the most. The full model is in
   renderer had not drawn it. `painted()` waits for two frames timed after
   the fade (a frame shows the page as it was when it began, up to a frame
   earlier than its timestamp; the second frame timed after the fade was
-  begun after the first was drawn, so the fade is in it). The margin is
-  the fade plus the half second a drawn frame can lag a heavy scene.
+  begun after the first was drawn, so the fade is in it). The fade is
+  waited out in the page (`getAnimations()` on the overlay, the moment the
+  last opacity transition finished), and the frames are counted from a
+  fifth of a second after it: a frame's content trails its timestamp by
+  that much on the smoke page. A fixed margin, the fade plus half a
+  second, put every voice of a seventeen-video series 0.6 to 0.9 s after
+  its card was fully in (PF1e Campaigner, 16 October 2026); the half
+  second alone taken off, a slow fade was still darkening under its
+  voice.
 - **Hold the closing card to the end.** Taking it down half a second
   before the end made one video end on a flash of the editor.
   `card(…, { hold: true })`.

@@ -34,11 +34,22 @@ const prefer = (opts: { top?: boolean; bottom?: boolean }): Prefer => (opts.top 
 /** A breath between one spoken line and the next. */
 const BREATH_MS = 400;
 /**
- * The overlay's fade-in (the caption's .3 s, the card's .45 s) and the time
- * a drawn frame can lag the page it shows (measured: about half a second
- * over a heavy scene): a line is spoken once it can be read.
+ * A line is spoken once it can be read: `shown()` waits for the overlay's
+ * fade to end in the page, then for two frames timed after that. This is
+ * the fallback when the page cannot say (the overlay's longest fade, the
+ * card's .45 s, and a frame). A fixed margin was the rule before: the
+ * fade plus a half second for a drawn frame's lag, and every tutorial's
+ * voice came 0.6 to 0.9 s after its card was in; the half second alone
+ * taken off, the smoke page's card, whose fade ran 0.7 s in the picture,
+ * was still darkening under its voice (PF1e Campaigner, 16 October 2026).
  */
-const FADE = 1.0;
+const FADE = 0.5;
+/**
+ * How far a drawn frame's content trails its timestamp: the smoke page's
+ * card was still darkening 0.15 to 0.2 s past the end of its fade as the
+ * page saw it, in frames timed after that end.
+ */
+const LAG = 0.2;
 /** The overlay's longest fade (the card's .45 s), waited out when the screencast is paused. */
 const FADE_MS = 500;
 
@@ -249,7 +260,18 @@ export class Demo {
    */
   private async shown() {
     if (this.rec.paused) { await this.wait(FADE_MS); return; }
-    await this.rec.painted(Date.now() / 1000, FADE);
+    const since = Date.now() / 1000;
+    // The overlay's fades waited out in the page (getAnimations() flushes the
+    // style change, so a fade just asked for is among them): the moment the
+    // last one ended. Two frames timed LAG after it have it fully in.
+    const ended = await this.page.evaluate(async () => {
+      const o = document.getElementById('demo-overlay');
+      const fades = o ? o.getAnimations({ subtree: true }).filter(a => (a as CSSTransition).transitionProperty === 'opacity') : [];
+      // A fade that never finishes (a page that cannot animate) gives up after three seconds.
+      await Promise.race([Promise.all(fades.map(a => a.finished.catch(() => undefined))), new Promise(r => setTimeout(r, 3000))]);
+      return Date.now() / 1000;
+    }).catch(() => null);
+    await this.rec.painted(ended ?? since, ended === null ? FADE : LAG);
   }
 
   /**

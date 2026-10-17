@@ -14,10 +14,13 @@
 // differs from the one before (ffmpeg's signalstats, the mean luminance
 // difference YDIF above 0.8), and the card is in when the run ends. Scene
 // detection (`select='gt(scene,0.4)'`) misses the fade, since no single
-// frame of it is a cut. The opening card is the first run after the first
-// frame (a line at 0.0 s is a hook drawn into the first frame: no fade);
-// the closing card is the last run that ends by its line's start, plus
-// the two frames `painted()` waits. The line should start within half a
+// frame of it is a cut. Each card is the last run that ends by its line's
+// start (plus the two frames `painted()` waits), after the first frame for
+// the opening one (a line at 0.0 s is a hook drawn into the first frame:
+// no fade). An earlier version kept only an opening fade that ended within
+// 0.6 s of the voice, so a card in 0.7 s before its voice read as "?",
+// not as the gap it was (PF1e Campaigner, 16 October 2026).
+// The line should start within half a
 // second of the card; a minus (the voice before the card) is the frame's
 // content lagging its timestamp on a heavy scene, up to about 0.25 s.
 import { execFileSync } from 'node:child_process';
@@ -67,9 +70,8 @@ for (const name of names) {
   const lines = JSON.parse(readFileSync(join(scripts, `${name}.json`), 'utf8'));
   if (!lines.length) continue;
   const first = lines[0], last = lines.at(-1);
-  // The first run after the first frame that could be the card: the voice is never more than half a second after it.
-  const open = runs(diffs(file, 0, first.start + 2)).filter(r => r[0] > 0.05 && r[1] >= first.start - 0.6 && r[0] <= first.start + 1);
-  const openAt = first.start < 0.1 ? 0 : open.length ? open[0][1] + FRAME : NaN;
+  const open = runs(diffs(file, 0, first.start + 2)).filter(r => r[0] > 0 && r[1] <= first.start + 0.3);
+  const openAt = first.start < 0.1 ? 0 : open.length ? open.at(-1)[1] + FRAME : NaN;
   const close = runs(diffs(file, last.start - 4, 5.5)).filter(r => r[1] <= last.start + 0.3);
   const closeAt = close.length ? close.at(-1)[1] + FRAME : NaN;
   const dOpen = first.start - openAt, dClose = last.start - closeAt;
