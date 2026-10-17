@@ -201,7 +201,8 @@ test('a caption goes to a corner when the middle is busy top and bottom, unless 
 // A stand-in for the voice service on this machine (voice.api), so the voiced path runs with no key and
 // no bill: a clip is a tone as long as its words take at 2.5 a second, or, for a line marked RUSHED,
 // half a second whatever it says (too fast at every speed).
-async function fakeVoice(): Promise<{ server: Server; api: string }> {
+/** A stand-in for the ElevenLabs API: a tone as long as the line, made after `delay` ms (the real API's wait). */
+async function fakeVoice(delay = 0): Promise<{ server: Server; api: string }> {
   const server = createServer((req, res) => {
     if (req.method === 'GET' && req.url?.startsWith('/v1/voices')) {
       res.setHeader('Content-Type', 'application/json');
@@ -215,7 +216,7 @@ async function fakeVoice(): Promise<{ server: Server; api: string }> {
       const secs = text.includes('RUSHED') ? 0.5 : Math.max(0.8, text.split(/\s+/).length / 2.5);
       const mp3 = execFileSync('ffmpeg', ['-loglevel', 'error', '-f', 'lavfi', '-i', `sine=frequency=220:duration=${secs}`, '-c:a', 'libmp3lame', '-f', 'mp3', '-']);
       res.setHeader('Content-Type', 'audio/mpeg');
-      res.end(mp3);
+      setTimeout(() => res.end(mp3), delay);
     });
   });
   await new Promise<void>(done => server.listen(0, '127.0.0.1', done));
@@ -224,7 +225,7 @@ async function fakeVoice(): Promise<{ server: Server; api: string }> {
 }
 
 test('voiced: the clips are mixed in one encode, and every line too fast is listed at the end of the take', async ({ page }) => {
-  const { server, api } = await fakeVoice();
+  const { server, api } = await fakeVoice(500);
   const cache = mkdtempSync(join(tmpdir(), 'screenplay-voice-'));
   try {
     configure({ api, cache, voiceName: 'Test Voice' });
@@ -237,6 +238,14 @@ test('voiced: the clips are mixed in one encode, and every line too fast is list
     await demo.card('Voiced', 'A counter', 'Said by a stand-in voice.', 1500);
     await demo.say('Add one counts up, and the count is shown in large type.', { keep: true });
     await demo.click(page.locator('#add'), 300);
+    await demo.clearNote();
+    // A cut (a second browser opened off camera), then at once a line whose clip is not made yet: its
+    // pause comes before any frame. An earlier version held the still before the first cut across the
+    // whole of it (seven seconds in a tutorial recorded on an empty clip cache, 16 October 2026).
+    demo.rec.pause();
+    await demo.wait(3000);
+    demo.rec.resume();
+    await demo.note('Made after the cut, and the wait never shows.');
     await demo.clearNote();
     // The last line set and left: save() waits for it to be said, so the picture lasts as long as its clip.
     await demo.note('That is the end of this short and fully voiced recording.');
@@ -254,7 +263,10 @@ test('voiced: the clips are mixed in one encode, and every line too fast is list
     expect(Number(probe('format=duration'))).toBeGreaterThan(last.start + lastClip);
     expect(length).toBeGreaterThan(5);
     const kept = JSON.parse(readFileSync(durations, 'utf8')) as Record<string, number>;
-    expect(Object.keys(kept)).toHaveLength(3);
+    expect(Object.keys(kept)).toHaveLength(4);
+    // Neither the cut nor the clip's second shows: the line after the cut follows the one before at a step's pace.
+    expect(lines.map(l => l.kind)).toEqual(['card', 'caption', 'caption', 'caption']);
+    expect(lines[2].start - lines[1].end).toBeLessThan(1.5);
 
     // Two lines over the speed limit in one take: the take goes on, and save() names both.
     await page.goto('https://smoke.test/voiced');

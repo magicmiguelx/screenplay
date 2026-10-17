@@ -22,19 +22,22 @@ export const FRAME = 1 / 30;
 
 export class Timeline {
   frames: Frame[] = [];
-  /** The moment of the last cut() not yet followed by a frame: the still before it ends there. */
+  /** The moment of the first cut() not yet followed by a frame: the still before it ends there. */
   private cutFrom: number | null = null;
+  /** Since that cut: the last resume() not yet followed by a cut or a frame. */
+  private resumedAt: number | null = null;
+  /** Since that cut: the seconds on camera between a resume() and a second cut() with no frame in between. */
+  private live = 0;
 
   /** Where a frame drawn at `wall` starts, after the frame before it. */
   private after(last: Frame | undefined, wall: number): number {
+    const cutFrom = this.cutFrom, live = this.live;
+    this.cutFrom = this.resumedAt = null;
+    this.live = 0;
     if (!last) return 0;
-    if (last.hold !== undefined) return last.video + last.hold;
-    if (this.cutFrom !== null) {
-      // After a cut: the still before the pause is kept as long as it lasted, then the picture jumps.
-      const held = Math.max(FRAME, this.cutFrom - last.wall);
-      this.cutFrom = null;
-      return last.video + held;
-    }
+    if (last.hold !== undefined) return last.video + last.hold + live;
+    // After a cut: the still before the pause is kept as long as it was on camera, then the picture jumps.
+    if (cutFrom !== null) return last.video + Math.max(FRAME, cutFrom - last.wall + live);
     return last.video + Math.max(0, wall - last.wall);
   }
 
@@ -45,15 +48,29 @@ export class Timeline {
     return frame;
   }
 
-  /** The picture stops here (pause): what happens until the next frame is left out. */
+  /**
+   * The picture stops here (pause): what happens until the next frame is
+   * left out. A second cut before any frame (a pause just after a resume:
+   * an uncached clip made just after a cut to a second browser) keeps the
+   * first: an earlier version took the second's moment, and the still
+   * before the first cut was held across the whole of it.
+   */
   cut(at: number) {
-    this.cutFrom = at;
+    if (this.cutFrom === null) this.cutFrom = at;
+    else if (this.resumedAt !== null) this.live += Math.max(0, at - this.resumedAt);
+    this.resumedAt = null;
+  }
+
+  /** The picture goes on (resume): until the next frame, the still before the cut is on camera again. */
+  resume(at: number) {
+    if (this.cutFrom !== null) this.resumedAt = at;
   }
 
   /** Forget the frames so far: the video starts with the next one. */
   reset() {
     this.frames = [];
-    this.cutFrom = null;
+    this.cutFrom = this.resumedAt = null;
+    this.live = 0;
   }
 
   /**

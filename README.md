@@ -58,7 +58,7 @@ A new project, from nothing: `/plan-videos <path to the app>` surveys it and
 writes `docs/video-roadmap.md` there (the tutorials in tracks, the promos,
 the fixtures they need, the order to make them: `docs/planning.md`);
 `/make-videos` works the roadmap. Setting the project up by hand: `docs/adopting.md`. In short, `npm install -D
-github:magicmiguelx/screenplay#v0.2.3` (a tag, so the videos change only when the
+github:magicmiguelx/screenplay#v0.2.4` (a tag, so the videos change only when the
 project moves it; or copy `src/` into the e2e tree),
 copy `templates/screenplay.config.mjs` to the project root and
 `templates/demos.spec.ts` beside the e2e tests, and write the first

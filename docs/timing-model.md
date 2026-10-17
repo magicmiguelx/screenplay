@@ -14,9 +14,15 @@ timeline with its `wall`. The timeline gives it a start in the video:
 | The frame before it was… | This frame starts at |
 | --- | --- |
 | an ordinary screencast frame | `last.video + (wall − last.wall)`: the gap between them |
-| the last frame before a cut (`pause()` at time `cutFrom`) | `last.video + max(1/30, cutFrom − last.wall)`: the still is kept as long as it lasted, then the picture jumps |
-| a frame drawn by hand with `hold` | `last.video + last.hold` |
+| the last frame before a cut (`pause()` at time `cutFrom`) | `last.video + max(1/30, cutFrom − last.wall + live)`: the still is kept as long as it was on camera, then the picture jumps |
+| a frame drawn by hand with `hold` | `last.video + last.hold + live` |
 | nothing (the first frame) | 0 |
+
+`cutFrom` is the first `pause()` since the last frame, and `live` the
+time on camera between a `resume()` and a further `pause()` with no frame
+in between (usually milliseconds: a line whose clip is made off camera
+just after a cut). An earlier version kept the last pause's moment, and a
+pause straight after a resume held the still across the whole first cut.
 
 A frame drawn by hand (`addFrame(data, hold)`) is added while the
 screencast is paused, with the moment it was drawn as its `wall` and its
