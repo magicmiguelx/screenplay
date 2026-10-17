@@ -261,6 +261,11 @@ form to work through while you do.
   `rec.resume()` around a page load, a slow redraw, the mechanics of a
   dialog whose result is what matters, a wait on a mocked API. The video
   jumps; the timeline keeps the still before the cut as long as it lasted.
+  A pause straight after a resume (a line whose clip is not made yet,
+  just after a cut to a second browser) keeps the first cut: the still
+  is the time it was on camera, never the time off camera (0.2.3 and
+  before held a still across the whole first cut on an empty clip cache:
+  seven seconds in a PF1e Campaigner tutorial).
   `cardAcross()` holds a title card across a navigation (a payment page
   and back).
 - **Smooth moves are drawn by hand.** A software renderer screencasts a

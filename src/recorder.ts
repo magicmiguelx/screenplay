@@ -158,7 +158,10 @@ export class Recorder {
     this.recording = true;
     this.pausedAt = null;
     this.drawnInPause = 0;
-    if (pausedAt !== null) this.onResume?.(Date.now() / 1000 - pausedAt, drawn);
+    if (pausedAt === null) return;
+    const now = Date.now() / 1000;
+    this.timeline.resume(now);
+    this.onResume?.(now - pausedAt, drawn);
   }
 
   get paused() { return !this.recording; }

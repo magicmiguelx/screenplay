@@ -99,3 +99,47 @@ test('reset forgets the warm-up frames', () => {
   close(t.frames[0].video, 0);
   close(t.videoTime(102.5), 0.5);
 });
+
+test('a pause right after a resume keeps the first cut out of the picture', () => {
+  // A cut to a second browser (101 to 108), resumed, and at once a second
+  // pause while an uncached clip is made: no frame came between them. An
+  // earlier version let the second cut's moment replace the first's, and the
+  // still before the first cut was held across the whole of it (a seven-second
+  // still in a tutorial recorded on an empty clip cache, 16 October 2026).
+  const t = new Timeline();
+  t.add('a', 100.0);
+  t.add('b', 100.5);
+  t.cut(101.0);
+  t.resume(108.0);
+  t.cut(108.02);          // the clip is made off camera
+  t.resume(110.0);
+  t.add('c', 110.05);
+  close(t.frames[2].video, 1.0 + 0.02, 'c follows the still as long as it was on camera: 0.5 s, then 0.02 s live');
+  close(t.videoTime(104.0), 1.02, 'a moment in the first cut lands on the cut');
+  close(t.videoTime(110.3), 1.27, 'a moment after resume is on the new frames');
+});
+
+test('two pauses with no resume between them on the timeline: the first cut counts', () => {
+  const t = new Timeline();
+  t.add('a', 100.0);
+  t.cut(100.5);
+  t.cut(105.0);
+  t.add('b', 107.0);
+  close(t.frames[1].video, 0.5);
+});
+
+test('a pause right after drawn frames and a resume does not shorten the next screencast step', () => {
+  // A still drawn by hand, resumed, then at once a cut for a clip: the frames
+  // after it follow each other by their wall-clock gaps again.
+  const t = new Timeline();
+  t.add('a', 100.0);
+  t.cut(100.5);
+  t.add('s', 101.0, 2.0);
+  t.resume(103.0);
+  t.cut(103.0);
+  t.resume(105.0);
+  t.add('b', 105.1);
+  t.add('c', 105.6);
+  close(t.frames[2].video, 2.5, 'b follows the drawn still');
+  close(t.frames[3].video, 3.0, 'c is 0.5 s after b, as drawn');
+});
